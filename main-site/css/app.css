@@ -619,13 +619,28 @@ body.page-remote { overflow: auto; display: block; }
 
 @media (max-width: 480px) {
   .toggle-grid { grid-template-columns: 1fr; }
-  .stepper-value { min-width: 62px; font-size: 0.78rem; }
   .brand span { display: none; }
+
+  /* On a phone the transport cannot hold everything at once. The clock and
+     the fullscreen button are the two that can go: the clock is repeated on
+     the remote, and fullscreen has the F key and the browser's own control.
+     The play button and the two steppers are what the bar is for, so they
+     stay, and the row keeps its single line rather than overflowing. */
+  .transport { gap: 4px; padding-left: 8px; padding-right: 8px; }
+  .transport .timer,
+  .transport #fullscreenBtn { display: none; }
+  .stepper { flex: 1 1 0; min-width: 0; justify-content: space-between; }
+  .stepper-value { min-width: 0; font-size: 0.78rem; padding: 0 2px; }
 }
 
 /* Under about 700px the two steppers and the clock cannot share a row with
    the play button, so the transport wraps into two. */
-@media (max-width: 700px) {
-  .transport { flex-wrap: wrap; }
-  .timer { margin-left: auto; }
+/* Between phone and desktop the transport has more in it than fits
+   comfortably, but letting it wrap puts the clock alone on a second row with
+   a gap above it, which reads as a mistake. Tighten the row instead, and let
+   the steppers give up their fixed width first. */
+@media (max-width: 760px) {
+  .transport { gap: 6px; padding-left: 10px; padding-right: 10px; }
+  .stepper-value { min-width: 0; }
+  .timer { padding: 8px 10px; }
 }

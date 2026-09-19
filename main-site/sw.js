@@ -12,7 +12,7 @@
 // It is a plain integer, counting up by one. Bump it in the same change as
 // any edit to anything the worker serves, never as a separate tidy-up
 // afterwards: a version left behind is an update bar nobody ever sees.
-const VERSION = 2;
+const VERSION = 4;
 const CACHE = `uwuPromptr-${VERSION}`;
 
 // Everything the app needs to boot and run with no network at all. The
