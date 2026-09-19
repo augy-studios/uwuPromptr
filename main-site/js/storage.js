@@ -14,6 +14,10 @@ export const SETTING_RANGES = {
   speed: { min: 0.1, max: 40, step: 0.1, coarse: 1, default: 12 },
   lineHeight: { min: 1, max: 2.4, step: 0.05, coarse: 0.1, default: 1.4 },
   margin: { min: 0, max: 40, step: 1, coarse: 5, default: 8 },
+  // Where the focus line sits, as a percentage down the viewport. It has no
+  // coarse step because nothing nudges it from the keyboard; it is here so
+  // that it clamps and resets like every other numeric setting.
+  focusPosition: { min: 10, max: 80, step: 1, coarse: 5, default: 40 },
 };
 
 export const DEFAULT_SETTINGS = {
@@ -21,11 +25,10 @@ export const DEFAULT_SETTINGS = {
   speed: SETTING_RANGES.speed.default,
   lineHeight: SETTING_RANGES.lineHeight.default,
   margin: SETTING_RANGES.margin.default,
+  focusPosition: SETTING_RANGES.focusPosition.default,
   flipX: false,
   flipY: false,
   focusLine: true,
-  // Where the focus line sits, as a percentage down the viewport.
-  focusPosition: 40,
   timer: true,
 };
 

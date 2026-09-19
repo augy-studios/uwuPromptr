@@ -173,27 +173,57 @@
 
             <div class="setting">
                 <label class="setting-head" for="fontSizeRange">Font size <output id="fontSizeRangeOut"></output></label>
-                <input type="range" id="fontSizeRange" data-range="fontSize" min="16" max="200" step="1">
+                <div class="setting-row">
+                    <input type="range" id="fontSizeRange" data-range="fontSize" min="16" max="200" step="1">
+                    <button class="icon-btn small reset-btn" type="button" data-reset="fontSize"
+                        aria-label="Reset font size to 60" title="Reset to 60">
+                        <span data-icon="reset"></span>
+                    </button>
+                </div>
             </div>
 
             <div class="setting">
                 <label class="setting-head" for="speedRange">Speed <output id="speedRangeOut"></output></label>
-                <input type="range" id="speedRange" data-range="speed" min="0.1" max="40" step="0.1">
+                <div class="setting-row">
+                    <input type="range" id="speedRange" data-range="speed" min="0.1" max="40" step="0.1">
+                    <button class="icon-btn small reset-btn" type="button" data-reset="speed"
+                        aria-label="Reset speed to 12.0" title="Reset to 12.0">
+                        <span data-icon="reset"></span>
+                    </button>
+                </div>
             </div>
 
             <div class="setting">
                 <label class="setting-head" for="lineHeightRange">Line height <output id="lineHeightRangeOut"></output></label>
-                <input type="range" id="lineHeightRange" data-range="lineHeight" min="1" max="2.4" step="0.05">
+                <div class="setting-row">
+                    <input type="range" id="lineHeightRange" data-range="lineHeight" min="1" max="2.4" step="0.05">
+                    <button class="icon-btn small reset-btn" type="button" data-reset="lineHeight"
+                        aria-label="Reset line height to 1.40" title="Reset to 1.40">
+                        <span data-icon="reset"></span>
+                    </button>
+                </div>
             </div>
 
             <div class="setting">
                 <label class="setting-head" for="marginRange">Side margin <output id="marginRangeOut"></output></label>
-                <input type="range" id="marginRange" data-range="margin" min="0" max="40" step="1">
+                <div class="setting-row">
+                    <input type="range" id="marginRange" data-range="margin" min="0" max="40" step="1">
+                    <button class="icon-btn small reset-btn" type="button" data-reset="margin"
+                        aria-label="Reset side margin to 8" title="Reset to 8">
+                        <span data-icon="reset"></span>
+                    </button>
+                </div>
             </div>
 
             <div class="setting">
                 <label class="setting-head" for="focusPositionRange">Focus line position <output id="focusPositionRangeOut"></output></label>
-                <input type="range" id="focusPositionRange" data-range="focusPosition" min="10" max="80" step="1">
+                <div class="setting-row">
+                    <input type="range" id="focusPositionRange" data-range="focusPosition" min="10" max="80" step="1">
+                    <button class="icon-btn small reset-btn" type="button" data-reset="focusPosition"
+                        aria-label="Reset focus line position to 40" title="Reset to 40">
+                        <span data-icon="reset"></span>
+                    </button>
+                </div>
             </div>
 
             <p class="modal-section-label">Display</p>

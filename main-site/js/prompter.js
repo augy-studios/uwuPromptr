@@ -56,6 +56,20 @@ export class Prompter {
     return next;
   }
 
+  // Put one setting back to what it ships as. Returns the value, so a caller
+  // can say what it did without looking it up again.
+  resetSetting(name) {
+    const range = SETTING_RANGES[name];
+    if (!range) return this.settings[name];
+    return this.set(name, range.default);
+  }
+
+  isDefault(name) {
+    const range = SETTING_RANGES[name];
+    if (!range) return true;
+    return this.settings[name] === range.default;
+  }
+
   nudge(name, direction, coarse = false) {
     const range = SETTING_RANGES[name];
     if (!range) return;

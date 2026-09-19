@@ -386,6 +386,34 @@ body.chrome-hidden .transport {
   font-variant-numeric: tabular-nums;
 }
 
+/* A slider and its reset button. The button keeps its width when disabled
+   rather than being removed, so the sliders all stop at the same place and
+   the column does not shift as values change. */
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.setting-row input[type="range"] { flex: 1 1 auto; min-width: 0; }
+
+.reset-btn {
+  flex: none;
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted-strong);
+}
+.reset-btn:hover:not(:disabled) {
+  background: var(--surface-strong);
+  border-color: var(--surface-border);
+  color: var(--ink);
+}
+/* Already at the default: nothing to undo. Dimmed rather than hidden, so the
+   row does not reflow the moment somebody touches a slider. */
+.reset-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
 input[type="range"] {
   width: 100%;
   height: 28px;

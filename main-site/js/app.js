@@ -248,6 +248,15 @@ function syncToolbar(state) {
   broadcastState(state);
 }
 
+// How many decimals a setting shows. Speed reads as 12.0 and line height as
+// 1.40; everything else is a whole number. One definition, so the readout
+// above a slider and the label on its reset button cannot disagree.
+function formatSetting(name, value) {
+  if (name === "speed") return Number(value).toFixed(1);
+  if (name === "lineHeight") return Number(value).toFixed(2);
+  return String(value);
+}
+
 function syncSettingsModal(state) {
   const pairs = {
     fontSizeRange: "fontSize",
@@ -263,13 +272,13 @@ function syncSettingsModal(state) {
     // Do not fight the slider the person is currently dragging.
     if (document.activeElement !== range) range.value = state[name];
     const output = el(`${rangeId}Out`);
-    if (output) {
-      output.textContent =
-        name === "speed" || name === "lineHeight"
-          ? Number(state[name]).toFixed(name === "speed" ? 1 : 2)
-          : state[name];
-    }
+    if (output) output.textContent = formatSetting(name, state[name]);
   }
+
+  // A reset button with nothing to undo is disabled rather than hidden.
+  document.querySelectorAll("[data-reset]").forEach((btn) => {
+    btn.disabled = prompter.isDefault(btn.dataset.reset);
+  });
 
   for (const name of ["flipX", "flipY", "focusLine", "timer"]) {
     const btn = document.querySelector(`[data-toggle="${name}"]`);
@@ -300,6 +309,34 @@ function wireTransport() {
   document.querySelectorAll("[data-range]").forEach((range) => {
     range.addEventListener("input", () => {
       prompter.set(range.dataset.range, Number(range.value));
+    });
+  });
+
+  // The labels name the value they restore, which means they have to come
+  // from SETTING_RANGES rather than the markup: a default changed in one
+  // place and not the other is a button that lies about what it does.
+  document.querySelectorAll("[data-reset]").forEach((btn) => {
+    const name = btn.dataset.reset;
+    const range = SETTING_RANGES[name];
+    if (range) {
+      const label = document.querySelector(`label[for="${name}Range"]`);
+      const what = label ? label.firstChild.textContent.trim().toLowerCase() : name;
+      const value = formatSetting(name, range.default);
+      btn.setAttribute("aria-label", `Reset ${what} to ${value}`);
+      btn.setAttribute("title", `Reset to ${value}`);
+    }
+  });
+
+  document.querySelectorAll("[data-reset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const name = btn.dataset.reset;
+      prompter.resetSetting(name);
+      // The slider keeps focus after a click in some browsers, and
+      // syncSettingsModal deliberately leaves the focused control alone so it
+      // does not fight a drag. Write it back here so the thumb actually moves.
+      const range = document.querySelector(`[data-range="${name}"]`);
+      if (range) range.value = prompter.get(name);
+      syncSettingsModal(prompter.state());
     });
   });
 
