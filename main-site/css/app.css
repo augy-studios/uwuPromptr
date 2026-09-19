@@ -482,16 +482,24 @@ input[type="range"]:focus-visible { outline: 2px solid var(--brand-ink); outline
   align-items: center;
   justify-content: center;
   gap: 10px;
+  width: 100%;
   padding: 14px;
   border-radius: 16px;
   background: var(--brand-fill);
   color: var(--on-brand);
+  border: 1px solid var(--surface-border);
   font-size: 2rem;
   letter-spacing: 0.22em;
   text-indent: 0.22em;
   font-variant-numeric: tabular-nums;
+  /* Selectable as well as tappable: copying by hand still has to work where
+     the clipboard API is refused, which is most non-secure origins. */
   user-select: text;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
+.remote-code:hover { background: var(--brand-fill-strong); }
+.remote-code:active { transform: scale(0.99); }
+.remote-code:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 3px; }
 
 .remote-status {
   display: flex;

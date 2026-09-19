@@ -1,0 +1,18 @@
+# Real environment files. The .example ones beside them are committed and are
+# the documentation; these hold the actual TURN secret and must never be.
+.env
+.env.*
+!.env.example
+
+# Vercel's local state.
+.vercel
+
+# Nothing here needs a package manager, so anything that turns up is a tool's
+# working directory rather than part of the site.
+node_modules/
+
+# Editor and OS leavings.
+.DS_Store
+Thumbs.db
+*.swp
+.idea/

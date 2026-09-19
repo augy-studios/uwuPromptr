@@ -720,6 +720,19 @@ function wireRemote() {
   });
 
   el("remoteNewCode").addEventListener("click", regenerateRemoteCode);
+  // The code itself, rather than the link the button beside it copies. Typing
+  // six characters into another device is the common case, and reading them
+  // off a screen to do it is where they get mistyped.
+  el("remoteCode").addEventListener("click", async () => {
+    if (!hostCode) return;
+    try {
+      await navigator.clipboard.writeText(hostCode);
+      toast("Remote ID copied");
+    } catch {
+      toast("Could not copy. The ID is on screen to type.");
+    }
+  });
+
   el("remoteCopy").addEventListener("click", async () => {
     if (!hostCode) return;
     try {

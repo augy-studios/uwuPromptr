@@ -40,6 +40,47 @@ export function isValidCode(input) {
   return code.length === CODE_LENGTH && [...code].every((c) => CODE_ALPHABET.includes(c));
 }
 
+/* ---- ICE servers ----
+
+   Two devices on one network reach each other directly and none of this
+   matters. Across two networks they often cannot: a mobile carrier usually
+   puts a phone behind a symmetric NAT, where STUN learns an address that is
+   already wrong by the time the other end tries it, and the data channel never
+   opens. That is why a prompter on ethernet and a remote on 5G would not pair
+   while two browsers on one wifi did.
+
+   A TURN relay is the only thing that fixes that case, so /api/turn-credentials
+   mints short-lived ones. It is fetched rather than hardcoded because a
+   permanent username and password in this file would be readable by anybody
+   and the relay would be theirs too.
+
+   **Not having a relay is a supported state.** The endpoint answers with an
+   empty list when it is not configured, the fetch is allowed to fail, and
+   either way pairing carries on with STUN alone, which is all it ever had. */
+
+const FALLBACK_ICE = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+];
+
+let icePromise = null;
+
+function loadIceServers() {
+  // Cached for the life of the page: the credentials outlive any one pairing,
+  // and a second fetch on every reconnect would be noise.
+  if (icePromise) return icePromise;
+
+  icePromise = fetch("/api/turn-credentials", { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((payload) => {
+      const servers = payload?.data?.iceServers;
+      return Array.isArray(servers) && servers.length > 0 ? servers : FALLBACK_ICE;
+    })
+    .catch(() => FALLBACK_ICE);
+
+  return icePromise;
+}
+
 let peerLibrary = null;
 
 function loadPeerJs() {
@@ -164,11 +205,11 @@ export class RemoteHost extends Connection {
   }
 
   async start(code) {
-    const Peer = await loadPeerJs();
+    const [Peer, iceServers] = await Promise.all([loadPeerJs(), loadIceServers()]);
     this.code = code;
     this.setStatus("connecting");
 
-    this.peer = new Peer(PEER_PREFIX + code, { debug: 0 });
+    this.peer = new Peer(PEER_PREFIX + code, { debug: 0, config: { iceServers } });
 
     this.peer.on("open", () => this.setStatus("waiting"));
     this.peer.on("connection", (link) => {
@@ -195,10 +236,10 @@ const CONNECT_TIMEOUT_MS = 15000;
 
 export class RemoteClient extends Connection {
   async connect(code) {
-    const Peer = await loadPeerJs();
+    const [Peer, iceServers] = await Promise.all([loadPeerJs(), loadIceServers()]);
     this.setStatus("connecting");
 
-    this.peer = new Peer({ debug: 0 });
+    this.peer = new Peer({ debug: 0, config: { iceServers } });
 
     const timer = setTimeout(() => {
       if (this.status !== "connected") {
