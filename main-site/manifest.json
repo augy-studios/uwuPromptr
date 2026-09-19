@@ -1,16 +1,18 @@
 {
     "name": "uwuPromptr by UwU Apps",
     "short_name": "uwuPromptr",
-    "description": "Simple Teleprompter web app with multiple script support and remote control.",
+    "description": "Teleprompter that works offline, with granular speed and font control, multiple scripts, and a phone remote.",
     "icons": [{
             "src": "UPC-192.png",
             "type": "image/png",
-            "sizes": "192x192"
+            "sizes": "192x192",
+            "purpose": "any"
         },
         {
             "src": "UPC-512.png",
             "type": "image/png",
-            "sizes": "512x512"
+            "sizes": "512x512",
+            "purpose": "any"
         }
     ],
     "screenshots": [{
@@ -26,6 +28,12 @@
             "form_factor": "wide"
         }
     ],
+    "shortcuts": [{
+        "name": "Remote control",
+        "short_name": "Remote",
+        "description": "Control a prompter running on another device.",
+        "url": "/remote"
+    }],
     "start_url": "/",
     "theme_color": "#cfc",
     "background_color": "#cfc",
