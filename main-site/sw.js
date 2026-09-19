@@ -7,9 +7,12 @@
 //
 // VERSION is the trigger for the whole update prompt. The browser compares
 // this file byte for byte, so if it has not changed there is no update to
-// prompt about however much else in the build has moved. Bump it on every
-// deploy that changes anything the worker serves.
-const VERSION = "1.0.0";
+// prompt about however much else in the build has moved.
+//
+// It is a plain integer, counting up by one. Bump it in the same change as
+// any edit to anything the worker serves, never as a separate tidy-up
+// afterwards: a version left behind is an update bar nobody ever sees.
+const VERSION = 2;
 const CACHE = `uwuPromptr-${VERSION}`;
 
 // Everything the app needs to boot and run with no network at all. The
