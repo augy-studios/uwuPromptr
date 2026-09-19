@@ -3,8 +3,14 @@
 A [coturn](https://github.com/coturn/coturn) relay on a Debian VPS, so the
 remote control pairs across networks.
 
-Not part of the deployed site. `main-site/` goes to Vercel; this goes on a
-machine you run.
+**Optional, and not set up.** Without it the remote works, and both devices
+have to be on the same network: the same wifi, or a mobile hotspot shared from
+one to the other, which is the practical answer on a shoot or anywhere the
+wifi is not yours. That is the documented behaviour, and this directory exists
+for the day the restriction is worth lifting.
+
+Not part of the deployed site either. `main-site/` goes to Vercel; this goes on
+a machine you run.
 
 ## Why this exists
 

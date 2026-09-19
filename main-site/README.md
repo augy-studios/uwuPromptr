@@ -15,7 +15,8 @@ the [root README](../README.md).
   shift for bigger jumps.
 - **Multiple scripts**, switched from the menu in the top bar.
 - **Remote control** from another device at `/remote?id=CODE`, paired by a six
-  character code or the QR code beside it.
+  character code or the QR code beside it. **Both devices need to be on the
+  same network**, see below.
 - **Works offline.** Once it has been opened once, the prompter needs no
   connection to open, scroll, save, or edit.
 
@@ -63,6 +64,30 @@ The one thing that touches the network is pairing a remote. The two devices
 find each other through the public PeerJS broker and then talk directly over
 WebRTC, so a script never passes through a server. If the broker cannot be
 reached, the remote is unavailable and the prompter carries on unchanged.
+
+## The remote needs both devices on one network
+
+**Put them on the same wifi, or share a mobile hotspot from one to the other.**
+A phone's hotspot with the laptop joined to it is the most reliable way to do
+this anywhere, and it is what to reach for on a shoot or in a venue whose wifi
+you do not control.
+
+The reason is WebRTC rather than anything in this app. Two devices on one
+network reach each other directly. Across two networks they have to guess each
+other's public addresses, and a mobile carrier puts a phone behind a
+**symmetric NAT** that assigns a different external port per destination, so
+the address the other end is given is wrong before it is used. A laptop on
+ethernet and a phone on 5G is exactly that case, and the data channel simply
+never opens.
+
+Getting past it needs a **TURN relay**, which is a server that both devices
+connect out to and which passes the traffic along. The free PeerJS broker
+provides signalling and STUN but no TURN, so one has to be run. `turn-server/`
+at the repository root has a coturn setup for a Debian VPS if that is ever
+wanted; until one is running, the same-network rule above is the answer.
+
+The remote says so when a connection cannot be opened, rather than reporting
+that the prompter hung up.
 
 ## Environment
 

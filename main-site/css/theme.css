@@ -30,6 +30,12 @@ button:disabled { cursor: not-allowed; opacity: 0.6; }
    most visible in a round button. */
 svg { display: block; }
 
+/* The hidden attribute is only `display: none` in the user agent stylesheet,
+   so any rule here that sets display beats it and the element stays on screen.
+   .btn does exactly that, which is how Start and Stop were once visible at the
+   same time. This puts the attribute back in charge everywhere. */
+[hidden] { display: none !important; }
+
 [data-icon] {
   display: inline-flex;
   align-items: center;

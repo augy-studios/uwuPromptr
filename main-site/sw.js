@@ -66,7 +66,7 @@
 // VERSION is a plain integer, counting up by one. Not a semantic version:
 // nothing reads it as one, and it exists only so the browser sees this file
 // differ byte for byte.
-const VERSION = 13;
+const VERSION = 15;
 
 const SHELL = `uwuPromptr-shell-${VERSION}`;
 const FONTS = "uwuPromptr-fonts";

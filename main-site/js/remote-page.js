@@ -121,10 +121,13 @@ function setStatus(status, message) {
     // claim about somebody else's device that is very likely untrue.
     case "unreachable":
       dot.classList.add("error");
+      // The same-network rule first, because it is the usual reason and the
+      // one somebody can act on. Suggesting mobile data here would be advice
+      // that makes it worse: two different networks is the failing case.
       text.textContent =
-        "Could not reach the prompter. Check the code is still the one on screen, " +
-        "and that both devices have internet. Some networks block the direct " +
-        "connection this needs, so trying one of them on mobile data often works.";
+        "Could not reach the prompter. Both devices have to be on the same network, " +
+        "so share a mobile hotspot from one to the other if there is no shared wifi. " +
+        "Check too that the code is still the one on screen.";
       break;
     case "waiting":
       dot.classList.add("warn");

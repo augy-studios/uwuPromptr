@@ -7,6 +7,11 @@ step at a time while it runs, you can keep as many scripts as you like and
 switch between them, and a second device can drive the whole thing over a six
 character pairing code.
 
+**The remote needs both devices on the same network.** The same wifi, or a
+mobile hotspot shared from one to the other, which is the reliable way to do it
+anywhere. `main-site/README.md` explains why, and `turn-server/` has the
+optional relay that would lift the restriction.
+
 It follows the feature set of [promptr.tv](https://promptr.tv)
 ([source](https://github.com/manifestinteractive/teleprompter)), with finer
 control over speed and font size and a remote that needs no server of ours.
@@ -15,6 +20,7 @@ control over speed and font size and a remote that needs no server of ours.
 
 ```text
 main-site/                 the app, deployed as a static site on Vercel
+turn-server/               optional coturn relay, for pairing across networks
 uwuapps-theme.md           theme system spec, shared across UwU Apps
 uwuapps-retrofit-time-mode.md  how time-based mode was added to it
 update-bar-spec.md         the update prompt bar spec
