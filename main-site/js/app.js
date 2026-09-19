@@ -26,6 +26,10 @@ import { initUpdateBar } from "./sw-update.js";
 let prompter = null;
 let host = null;
 let hostCode = null;
+// Stopped with the Stop button rather than never started. Reopening the panel
+// then leaves it stopped, because somebody who switched it off did not switch
+// it back on by looking at it.
+let stoppedByHand = false;
 
 const el = (id) => document.getElementById(id);
 
@@ -519,6 +523,8 @@ async function startRemote() {
   host.addEventListener("message", (e) => handleRemoteMessage(e.detail));
 
   setRemoteStatus("connecting");
+  syncRemoteControls();
+
   try {
     await host.start(hostCode);
   } catch (cause) {
@@ -526,6 +532,10 @@ async function startRemote() {
     setRemoteStatus("error", "Could not load the remote control library. Check your connection.");
     console.warn("remote host failed to start:", cause);
   }
+
+  // After either outcome, since a failed start leaves nothing running and the
+  // panel should offer Start rather than Stop.
+  syncRemoteControls();
 }
 
 function stopRemote() {
@@ -536,6 +546,37 @@ function stopRemote() {
   el("remoteCode").textContent = "------";
   el("remoteUrl").textContent = "";
   el("qrHolder").innerHTML = "";
+  syncRemoteControls();
+}
+
+/**
+ * Which of the remote panel's controls apply right now.
+ *
+ * Stopped, the only thing on offer is Start; running, everything else is. The
+ * alternative is a Stop button that leaves the panel dead with no way back
+ * short of reloading the page, which is what this used to do.
+ */
+function syncRemoteControls() {
+  const running = Boolean(host);
+  el("remoteStart").hidden = running;
+  el("remoteStop").hidden = !running;
+  el("remoteCopy").disabled = !running;
+  el("remoteNewCode").disabled = !running;
+}
+
+/**
+ * Give up the current code and publish a new one.
+ *
+ * For when a code has been shown to a room, or somebody unwanted has it: the
+ * old one stops working immediately, because the peer holding it is destroyed.
+ * Any connected remote is dropped, which is the point.
+ */
+async function regenerateRemoteCode() {
+  host?.close();
+  host = null;
+  hostCode = null;
+  await startRemote();
+  toast("New remote ID");
 }
 
 function handleRemoteMessage(message) {
@@ -661,9 +702,24 @@ function applyRemoteEdit(message) {
 function wireRemote() {
   el("remoteBtn").addEventListener("click", () => {
     openModal("remoteModal");
+    // Opening the panel starts the remote, unless it was deliberately stopped:
+    // reopening it is not a request to undo that, and the Start button is
+    // right there.
+    if (!stoppedByHand) startRemote();
+    syncRemoteControls();
+  });
+
+  el("remoteStop").addEventListener("click", () => {
+    stoppedByHand = true;
+    stopRemote();
+  });
+
+  el("remoteStart").addEventListener("click", () => {
+    stoppedByHand = false;
     startRemote();
   });
-  el("remoteStop").addEventListener("click", stopRemote);
+
+  el("remoteNewCode").addEventListener("click", regenerateRemoteCode);
   el("remoteCopy").addEventListener("click", async () => {
     if (!hostCode) return;
     try {

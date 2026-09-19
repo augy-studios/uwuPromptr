@@ -66,7 +66,7 @@
 // VERSION is a plain integer, counting up by one. Not a semantic version:
 // nothing reads it as one, and it exists only so the browser sees this file
 // differ byte for byte.
-const VERSION = 10;
+const VERSION = 11;
 
 const SHELL = `uwuPromptr-shell-${VERSION}`;
 const FONTS = "uwuPromptr-fonts";
@@ -289,7 +289,9 @@ async function navigation(request, url) {
       return await fetch(request);
     } catch {
       const cached = await caches.match(target);
-      return cached ?? offlineResponse();
+      // Same rule as below: a navigation never answers 503, because an
+      // installed app given one fails to open rather than showing anything.
+      return cached ?? lastResortPage();
     }
   }
 
@@ -301,9 +303,55 @@ async function navigation(request, url) {
   } catch {
     // An address nobody precached, offline. The prompter shell is the honest
     // answer: it is the app, and it opens.
-    const fallback = await caches.match("/index.html");
-    return fallback ?? offlineResponse();
+    const fallback = (await caches.match("/index.html")) ?? (await caches.match("/"));
+    if (fallback) return fallback;
+
+    // **Never a 503 for a navigation.** An installed app whose launch gets one
+    // does not show an error in the page, it fails to open at all: Chrome puts
+    // up its own "This site can't be reached" and the app looks broken rather
+    // than offline. This is reachable when the shell cache is empty, which
+    // happens when an install was interrupted or the phone reclaimed the
+    // storage, and the honest thing is a page that says so and offers a retry.
+    return lastResortPage();
   }
+}
+
+/**
+ * A minimal page for a navigation that has nothing cached and no network.
+ *
+ * Deliberately built from a string rather than served from the cache: the case
+ * it exists for is the cache being empty, so anything it depended on would be
+ * missing too. Inline styles for the same reason.
+ */
+function lastResortPage() {
+  return new Response(
+    `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>uwuPromptr</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:#e4f7e4; color:#121815; font-family:"Jua","Segoe UI",sans-serif; padding:24px; }
+  main { max-width:22rem; text-align:center; }
+  h1 { font-size:1.25rem; margin:0 0 .5rem; color:#1f6b3d; }
+  p { font-size:.95rem; line-height:1.5; margin:0 0 1.25rem; color:#3b453f; }
+  button { font:inherit; padding:.7rem 1.4rem; border:1px solid rgba(255,255,255,.65);
+           border-radius:999px; background:#ccffcc; color:#121815; cursor:pointer; }
+</style>
+</head>
+<body>
+  <main>
+    <h1>uwuPromptr is not ready yet</h1>
+    <p>It could not be opened offline, because it has not finished downloading.
+       Connect to the internet once and it will work without a connection after that.</p>
+    <button type="button" onclick="location.reload()">Try again</button>
+  </main>
+</body>
+</html>`,
+    { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
+  );
 }
 
 /* -------------------------------------------------------------------------

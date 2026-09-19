@@ -116,18 +116,30 @@ class Connection extends EventTarget {
   bindLink(link) {
     this.link = link;
 
-    link.on("open", () => this.setStatus("connected"));
+    // Whether this link ever actually opened. A link that closes without
+    // having opened never reached the other end, and saying "the prompter
+    // closed the connection" about it is a claim about somebody else's device
+    // that is simply untrue: the usual cause is a network that will not carry
+    // peer to peer traffic at all.
+    let everOpened = false;
+
+    link.on("open", () => {
+      everOpened = true;
+      this.setStatus("connected");
+    });
     link.on("data", (message) => {
       if (!message || typeof message !== "object") return;
       this.dispatchEvent(new CustomEvent("message", { detail: message }));
     });
     link.on("close", () => {
       this.link = null;
-      this.setStatus("waiting");
+      if (everOpened) this.setStatus("dropped");
+      else this.setStatus("unreachable");
     });
     link.on("error", () => {
       this.link = null;
-      this.setStatus("waiting");
+      if (everOpened) this.setStatus("dropped");
+      else this.setStatus("unreachable");
     });
   }
 
@@ -142,6 +154,15 @@ class Connection extends EventTarget {
 
 // The prompter end: publish a code and accept whoever connects with it.
 export class RemoteHost extends Connection {
+  // From this end a remote that dropped and a remote that never arrived are the
+  // same state: nobody is connected and the code is still live. Both are
+  // reported as waiting, so the panel says what to do rather than describing
+  // the other device.
+  setStatus(status, detail) {
+    const mapped = status === "dropped" || status === "unreachable" ? "waiting" : status;
+    super.setStatus(mapped, detail);
+  }
+
   async start(code) {
     const Peer = await loadPeerJs();
     this.code = code;
@@ -166,12 +187,30 @@ export class RemoteHost extends Connection {
 }
 
 // The remote end: connect to a code somebody read off the prompter.
+// How long to wait for the data channel to open before saying so. A WebRTC
+// handshake across two networks is usually under a couple of seconds; one that
+// has taken fifteen is not slow, it is blocked, and without this the page sits
+// on "Connecting" indefinitely because nothing ever errors.
+const CONNECT_TIMEOUT_MS = 15000;
+
 export class RemoteClient extends Connection {
   async connect(code) {
     const Peer = await loadPeerJs();
     this.setStatus("connecting");
 
     this.peer = new Peer({ debug: 0 });
+
+    const timer = setTimeout(() => {
+      if (this.status !== "connected") {
+        this.link?.close();
+        this.link = null;
+        this.setStatus("unreachable");
+      }
+    }, CONNECT_TIMEOUT_MS);
+
+    this.addEventListener("status", (event) => {
+      if (event.detail.status === "connected") clearTimeout(timer);
+    });
 
     this.peer.on("open", () => {
       const link = this.peer.connect(PEER_PREFIX + code, { reliable: true });
@@ -180,6 +219,10 @@ export class RemoteClient extends Connection {
     });
 
     this.peer.on("error", (error) => {
+      // peer-unavailable means the broker has no peer under that code: the
+      // prompter is not running, is on a different code, or its panel was
+      // closed. That is a different thing from a channel that cannot be
+      // opened, and it gets its own message.
       this.setStatus("error", { message: describePeerError(error) });
     });
   }

@@ -111,9 +111,24 @@ function setStatus(status, message) {
     case "connecting":
       text.textContent = "Connecting.";
       break;
+    // Connected once, then went away. This one really is about the other end:
+    // the tab was closed, the panel was stopped, or the connection dropped.
+    case "dropped":
+      dot.classList.add("warn");
+      text.textContent = "Disconnected from the prompter. Connect again to carry on.";
+      break;
+    // Never opened. Saying the prompter closed the connection here would be a
+    // claim about somebody else's device that is very likely untrue.
+    case "unreachable":
+      dot.classList.add("error");
+      text.textContent =
+        "Could not reach the prompter. Check the code is still the one on screen, " +
+        "and that both devices have internet. Some networks block the direct " +
+        "connection this needs, so trying one of them on mobile data often works.";
+      break;
     case "waiting":
       dot.classList.add("warn");
-      text.textContent = "The prompter closed the connection.";
+      text.textContent = "Waiting for the prompter.";
       break;
     case "error":
       dot.classList.add("error");

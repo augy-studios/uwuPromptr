@@ -32,15 +32,28 @@
         "name": "Remote control",
         "short_name": "Remote",
         "description": "Control a prompter running on another device.",
-        "url": "/remote"
+        "url": "/remote",
+        "icons": [{
+                "src": "UPC-192.png",
+                "type": "image/png",
+                "sizes": "192x192",
+                "purpose": "any"
+            },
+            {
+                "src": "UPC-512.png",
+                "type": "image/png",
+                "sizes": "512x512",
+                "purpose": "any"
+            }
+        ]
     }],
     "start_url": "/",
     "theme_color": "#cfc",
     "background_color": "#cfc",
     "display": "standalone",
-    "display_override": ["fullscreen", "minimal-ui", "window-controls-overlay"],
+    "display_override": ["standalone", "minimal-ui"],
     "orientation": "any",
-    "id": "uwuPromptr",
+    "id": "/",
     "dir": "ltr",
     "scope": "/",
     "lang": "en",
