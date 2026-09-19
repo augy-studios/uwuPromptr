@@ -66,7 +66,7 @@
 // VERSION is a plain integer, counting up by one. Not a semantic version:
 // nothing reads it as one, and it exists only so the browser sees this file
 // differ byte for byte.
-const VERSION = 11;
+const VERSION = 12;
 
 const SHELL = `uwuPromptr-shell-${VERSION}`;
 const FONTS = "uwuPromptr-fonts";
@@ -106,13 +106,20 @@ const IS_DEV =
  * ---------------------------------------------------------------------- */
 
 const PRECACHE = [
-  // The two documents, and the address the launcher opens.
+  // **The clean addresses, never the .html ones.** cleanUrls in vercel.json
+  // makes /index.html a 308 to /, and a response fetched through a redirect is
+  // stored with redirected: true. Serving one of those for a navigation is not
+  // allowed, because a navigation request has redirect: "manual", and the
+  // browser rejects it with "a redirected response was used for a request
+  // whose redirect mode is not follow". The page then fails to open at all,
+  // which in an installed app is Chrome's own "This site can't be reached"
+  // rather than anything this worker can show.
   "/",
-  "/index.html",
-  "/remote.html",
-  // Served by Vercel for an unknown path. Precached so that an offline reader
-  // who follows a dead link gets the real page rather than a browser error.
-  "/404.html",
+  "/remote",
+  // Served by Vercel for an unknown path, and precached so that an offline
+  // reader who follows a dead link gets the real page rather than a browser
+  // error.
+  "/404",
   "/404.css",
 
   // Styles.
@@ -172,6 +179,22 @@ async function fillShell() {
       try {
         const response = await fetch(new Request(path, { cache: "reload" }));
         if (!response.ok) throw new Error(String(response.status));
+
+        // **A redirected response must never be stored.** fetch follows
+        // redirects by default, so asking for a path that 308s hands back a
+        // body with redirected: true. Serving that for a navigation is
+        // rejected by the browser outright and the app fails to open, which is
+        // how precaching /index.html under cleanUrls broke every install.
+        // isCacheable refuses these, and this is the one write that used to go
+        // around it.
+        if (!isCacheable(response)) {
+          throw new Error(
+            response.redirected
+              ? `redirected to ${response.url}, so the clean address belongs in PRECACHE`
+              : "not cacheable"
+          );
+        }
+
         await cache.put(path, response);
       } catch (cause) {
         failed.push(`${path} (${cause?.message ?? cause})`);
@@ -279,8 +302,10 @@ async function navigation(request, url) {
   // cleanUrls in vercel.json serves /remote from remote.html, so both spellings
   // have to land on the same cached document. Matching only the clean one sends
   // an offline visitor to /remote.html the prompter instead.
+  // Both spellings map onto the one cached document, and the key is the clean
+  // address because that is what was precached: see the note on PRECACHE.
   const path = url.pathname.replace(/\/$/, "");
-  const target = path === "/remote" || path === "/remote.html" ? "/remote.html" : "/index.html";
+  const target = path === "/remote" || path === "/remote.html" ? "/remote" : "/";
 
   // In development the freshest document wins, so an edit to the HTML shows up
   // on reload rather than after a version bump.
@@ -303,7 +328,7 @@ async function navigation(request, url) {
   } catch {
     // An address nobody precached, offline. The prompter shell is the honest
     // answer: it is the app, and it opens.
-    const fallback = (await caches.match("/index.html")) ?? (await caches.match("/"));
+    const fallback = await caches.match("/");
     if (fallback) return fallback;
 
     // **Never a 503 for a navigation.** An installed app whose launch gets one
