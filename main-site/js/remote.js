@@ -68,12 +68,25 @@ function loadPeerJs() {
 
 /* ---- the wire ----
 
-   Four message types, and both ends understand all four.
+   Five message types, and both ends understand all five.
 
-   { type: "state",   payload }  prompter to remote, the whole visible state
+   { type: "state",   payload }      prompter to remote, the whole visible state
    { type: "command", name, value }  remote to prompter, one action
-   { type: "script",  name, body }   prompter to remote, what is on screen
+   { type: "script",  name, body, rev }
+                                     prompter to remote, what is on screen
+   { type: "edit",    name, body, rev }
+                                     remote to prompter, a rewritten script
    { type: "hello" }                 remote to prompter, asking for state
+
+   **`rev` is what stops the two ends fighting.** Both can edit the same
+   script, and without a counter the last message to arrive wins: somebody
+   typing on the prompter while somebody else types on the remote would watch
+   their sentence be replaced mid-word by an older copy of itself.
+
+   The prompter owns the number. It sends the current `rev` with every script,
+   the remote echoes back the one it was editing, and an edit carrying a stale
+   `rev` is refused rather than applied. A refusal is not an error: the remote
+   is told what the script actually says now, and redraws.
 */
 
 class Connection extends EventTarget {

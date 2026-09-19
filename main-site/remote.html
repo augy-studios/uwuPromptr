@@ -128,12 +128,52 @@
                 <input type="range" id="scrub" min="0" max="100" step="0.1" value="0">
             </div>
 
-            <p class="modal-section-label">On the prompter now</p>
-            <div class="remote-preview" id="preview"></div>
+            <div id="previewBlock">
+                <div class="preview-head">
+                    <p class="modal-section-label">On the prompter now</p>
+                    <button class="btn" id="editBtn" type="button">
+                        <span data-icon="edit"></span>Edit
+                    </button>
+                </div>
+                <div class="remote-preview" id="preview"></div>
+            </div>
+
+            <section class="edit-panel" id="editPanel" hidden aria-label="Edit the script">
+                <p class="banner error" id="editRefused" hidden></p>
+                <p class="banner warn" id="editStale" hidden>
+                    The script changed on the prompter while you were typing. Sending will
+                    replace what it says now.
+                </p>
+                <input class="editor-name" id="editName" type="text" aria-label="Script name"
+                    placeholder="Script name">
+                <textarea class="edit-body" id="editBody" spellcheck="true"
+                    aria-label="Script text" placeholder="Type the script here."></textarea>
+                <div class="remote-controls">
+                    <button class="btn btn-quiet" id="editCancel" type="button">Cancel</button>
+                    <button class="btn btn-primary" id="editSend" type="button">
+                        <span data-icon="check"></span>Send
+                    </button>
+                    <button class="btn btn-wide" id="editReload" type="button">
+                        <span data-icon="reset"></span>Reload from the prompter
+                    </button>
+                </div>
+            </section>
 
             <button class="btn btn-danger" id="disconnectBtn" type="button">Disconnect</button>
         </section>
     </main>
+
+    <!-- Covers the page while the script is being edited on the prompter.
+         Not dismissible: the condition it describes is not one this end can
+         clear, and a cover with a close button is a suggestion. -->
+    <div class="editing-lock hidden" id="editingLock" role="status" aria-live="polite">
+        <div class="editing-lock-card glass">
+            <span data-icon="edit"></span>
+            <h2>Being edited on the prompter</h2>
+            <p>The script is open in the editor over there. This will unlock by itself
+                when they are done.</p>
+        </div>
+    </div>
 
     <!-- Theme -->
     <div class="modal-backdrop hidden" id="themeModal">

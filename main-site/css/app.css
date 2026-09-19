@@ -642,8 +642,86 @@ kbd {
   font-size: 1.6rem;
 }
 
+/* The preview, and the control that turns it into an editor. */
+#previewBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.preview-head .modal-section-label { margin: 0; }
+
+.edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-body {
+  width: 100%;
+  min-height: 34vh;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.edit-body::placeholder { color: var(--muted-strong); opacity: 1; }
+.edit-body:focus-visible,
+.editor-name:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; }
+
 /* The remote is a page that scrolls, unlike the prompter. */
 body.page-remote { overflow: auto; display: block; }
+
+/* Covers the whole remote while the script is being edited on the prompter.
+   It takes the pointer events rather than merely looking like it does, so a
+   tap lands on the cover and not on the control underneath it. */
+.editing-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.2s ease, visibility 0s linear 0s;
+}
+.editing-lock.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+}
+
+.editing-lock-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+  padding: 22px;
+  text-align: center;
+  background: var(--surface-strong);
+}
+.editing-lock-card svg { width: 28px; height: 28px; color: var(--brand-ink); }
+.editing-lock-card h2 { font-size: 1rem; color: var(--brand-ink); }
+.editing-lock-card p { font-size: 0.85rem; color: var(--muted-strong); line-height: 1.5; }
+
+/* Nothing behind the cover scrolls or takes a key while it is up. */
+body.locked { overflow: hidden; }
 
 @media (max-width: 480px) {
   .toggle-grid { grid-template-columns: 1fr; }

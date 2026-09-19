@@ -140,6 +140,16 @@ function loadActiveScript() {
   broadcastScript();
 }
 
+/* Switching to a different script, deleting one, or creating one all change
+   what the remote is looking at. The counter moves so that an edit already on
+   its way, answering the previous script, is refused rather than written over
+   whichever script is open now. */
+function switchActiveScript(id) {
+  setActiveScriptId(id);
+  scriptRev += 1;
+  loadActiveScript();
+}
+
 function wireScripts() {
   el("scriptSwitch").addEventListener("click", () => {
     renderScriptMenu();
@@ -149,8 +159,7 @@ function wireScripts() {
   el("scriptList").addEventListener("click", (e) => {
     const select = e.target.closest("[data-select]");
     if (select) {
-      setActiveScriptId(select.dataset.select);
-      loadActiveScript();
+      switchActiveScript(select.dataset.select);
       closeModal("scriptsModal");
       return;
     }
@@ -163,14 +172,14 @@ function wireScripts() {
       if (!confirm(`Delete "${script?.name ?? "this script"}"? This cannot be undone.`)) return;
       deleteScript(remove.dataset.delete);
       renderScriptMenu();
+      scriptRev += 1;
       loadActiveScript();
     }
   });
 
   el("newScriptBtn").addEventListener("click", () => {
     const script = createScript();
-    setActiveScriptId(script.id);
-    loadActiveScript();
+    switchActiveScript(script.id);
     closeModal("scriptsModal");
     openEditor();
   });
@@ -185,6 +194,10 @@ function openEditor() {
   el("editor").classList.remove("hidden");
   prompter.pause();
   el("editorBody").focus();
+  // The remote locks itself while this is open. Two people typing into one
+  // script is a fight the rev counter can only settle after the fact, by
+  // throwing one of them away; this stops it starting.
+  broadcastEditing(true);
 }
 
 function closeEditor({ save = true } = {}) {
@@ -192,8 +205,12 @@ function closeEditor({ save = true } = {}) {
     const id = getActiveScriptId();
     const name = el("editorName").value.trim() || "Untitled script";
     updateScript(id, { name, body: el("editorBody").value });
+    // Anything the remote is part way through editing is now answering an
+    // older script than this one.
+    scriptRev += 1;
   }
   el("editor").classList.add("hidden");
+  broadcastEditing(false);
   loadActiveScript();
 }
 
@@ -224,6 +241,9 @@ function wireEditor() {
         name: el("editorName").value.trim() || "Untitled script",
         body: el("editorBody").value,
       });
+      // Each autosave is a new revision, and the remote is shown the text as
+      // it stands, so somebody holding the phone watches it being typed.
+      bumpScriptRev();
     }, 400);
   };
   el("editorBody").addEventListener("input", autosave);
@@ -522,6 +542,14 @@ function handleRemoteMessage(message) {
   if (message.type === "hello") {
     broadcastScript();
     broadcastState(prompter.state());
+    // A remote that connects while the editor is open has to arrive locked,
+    // not find out at the next keystroke.
+    host?.send({ type: "editing", open: editingHere });
+    return;
+  }
+
+  if (message.type === "edit") {
+    applyRemoteEdit(message);
     return;
   }
 
@@ -550,9 +578,84 @@ function broadcastState(state) {
   host?.send({ type: "state", payload: state });
 }
 
+/* The revision counter behind the `edit` message. It counts changes made on
+   this prompter for as long as the page is open, which is all it has to do:
+   the remote only ever compares it against the number it was last sent, so it
+   needs to be unequal after a change rather than meaningful on its own. It is
+   deliberately not stored, because a counter that survives a reload would have
+   to agree with one on a device that reloaded separately. */
+let scriptRev = 0;
+
+function bumpScriptRev() {
+  scriptRev += 1;
+  broadcastScript();
+}
+
 function broadcastScript() {
   const script = getActiveScript();
-  host?.send({ type: "script", name: script.name, body: script.body });
+  host?.send({ type: "script", name: script.name, body: script.body, rev: scriptRev });
+}
+
+/* Whether the editor is open on this device. The remote covers itself while it
+   is, so the two ends cannot be typing into one script at once. Tracked rather
+   than read from the DOM at send time, because a remote that connects midway
+   through an edit has to be told on arrival. */
+let editingHere = false;
+
+function broadcastEditing(open) {
+  editingHere = open;
+  host?.send({ type: "editing", open });
+}
+
+/**
+ * A script rewritten on the remote.
+ *
+ * Refused when it is answering a version of the script that has since changed
+ * here, which is the case where applying it would silently throw away whatever
+ * was typed on the prompter in the meantime. The remote is sent what the script
+ * actually says now, and redraws.
+ */
+function applyRemoteEdit(message) {
+  // The editor is open here. The remote is covered while that is true, so this
+  // is an edit that was already in flight when it opened; applying it would
+  // overwrite a script somebody is looking at mid-sentence.
+  // The script goes first in both refusals below, so the remote has the current
+  // text and revision before it is told the edit bounced. The other order has
+  // it reopen its editor on the revision it just failed against, and the next
+  // send is refused for the same reason.
+  if (editingHere) {
+    broadcastScript();
+    host?.send({ type: "edit-refused", reason: "editing" });
+    host?.send({ type: "editing", open: true });
+    return;
+  }
+
+  if (Number(message.rev) !== scriptRev) {
+    // Answering a script that has since changed. Applying it would throw away
+    // whatever was typed here in the meantime, so it is refused and the remote
+    // is told what the script actually says now.
+    broadcastScript();
+    host?.send({ type: "edit-refused", reason: "stale" });
+    return;
+  }
+
+  const name = String(message.name ?? "").trim() || "Untitled script";
+  const body = String(message.body ?? "");
+
+  updateScript(getActiveScriptId(), { name, body });
+  scriptRev += 1;
+
+  // The editor is open on this device and holds the same script. Leaving it
+  // alone would mean closing it writes the old text back over the edit.
+  if (!el("editor").classList.contains("hidden")) {
+    el("editorName").value = name;
+    el("editorBody").value = body;
+  }
+
+  // loadActiveScript resets the prompter to the top, which is right: the text
+  // under the reader just changed, so the position they were at no longer
+  // refers to the same words.
+  loadActiveScript();
 }
 
 function wireRemote() {
