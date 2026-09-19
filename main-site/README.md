@@ -94,6 +94,30 @@ including 18:00. The two hours appear both in `js/theme.js`
 `<head>`, which cannot import anything and has to resolve the mode before
 first paint. **Change them together.**
 
+## When a change does not show up
+
+Nearly always one of two things, and they look identical from the outside:
+the page loads, the change is not there, and no update bar appears to say why.
+
+1. **`VERSION` in `sw.js` was not bumped.** The browser compares the worker
+   byte for byte. If that file is unchanged there is no update to find,
+   whatever else moved, so the old cache keeps answering and no bar is drawn.
+   This is the usual cause. Bump it, reload twice.
+2. **Something served a stale `sw.js`.** If a CDN or the browser hands back a
+   cached copy of the worker, the new bytes are never seen and the result is
+   the same. `vercel.json` sets `Cache-Control: max-age=0, must-revalidate`
+   on `sw.js`, the two documents, and the manifest to prevent exactly this.
+   Check the response headers on `/sw.js` before looking anywhere else.
+
+While developing on `localhost` or `127.0.0.1` the worker goes to the network
+first and falls back to the cache, so an edit shows up on reload without a
+version bump. Deployed origins stay cache-first, which is what makes the app
+open offline. That means **the update bar cannot be exercised on localhost by
+editing a file**: bump `VERSION` to see it, per the check below.
+
+To get out of a wedged state, in devtools: Application, Service Workers,
+Unregister, then Application, Storage, Clear site data, then reload.
+
 ## Deploying
 
 **Bump `VERSION` in `sw.js` whenever anything the worker serves changes.** It
@@ -115,7 +139,16 @@ to prevent.
 
 `vercel.json` sets `cleanUrls`, which is what serves `remote.html` at
 `/remote`. The service worker maps both spellings to the same cached
-document, so the remote opens offline either way.
+document, so the remote opens offline either way. It also sets
+`Cache-Control: max-age=0, must-revalidate` on `sw.js`, on both documents,
+and on the manifest, so a deploy is actually noticed. Everything else, the
+JavaScript and CSS, is free to be cached hard: the worker is what decides
+when a new copy is used.
+
+A page asks the browser to re-check for a new worker when the tab becomes
+visible again, when the connection comes back, and every thirty minutes,
+rather than waiting for whenever the browser would have got round to it. A
+tab left open since Tuesday is the exact case the bar exists for.
 
 ## Checking a release by hand
 

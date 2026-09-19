@@ -86,6 +86,29 @@ function watchForUpdate() {
   });
 }
 
+// The browser only re-fetches the worker script on its own schedule, which
+// can be hours. Asking explicitly is what turns "a new version is on the
+// server" into "the bar is on screen": on returning to the tab, and on a slow
+// interval for a tab left open all day.
+const UPDATE_INTERVAL_MS = 30 * 60 * 1000;
+
+function checkForUpdate() {
+  // Nothing to check against yet, and no point asking while offline or while
+  // the tab is in the background.
+  if (!registration || !navigator.onLine || document.visibilityState !== "visible") return;
+  registration.update().catch(() => {
+    // A failed check is not worth reporting: the next one will do.
+  });
+}
+
+function watchForNewDeploys() {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") checkForUpdate();
+  });
+  window.addEventListener("online", checkForUpdate);
+  setInterval(checkForUpdate, UPDATE_INTERVAL_MS);
+}
+
 function registerWorker() {
   if (!("serviceWorker" in navigator)) return;
 
@@ -94,6 +117,7 @@ function registerWorker() {
     .then((reg) => {
       registration = reg;
       watchForUpdate();
+      watchForNewDeploys();
     })
     .catch((cause) => {
       // A refused registration is not a reason to break the page. Private

@@ -12,8 +12,18 @@
 // It is a plain integer, counting up by one. Bump it in the same change as
 // any edit to anything the worker serves, never as a separate tidy-up
 // afterwards: a version left behind is an update bar nobody ever sees.
-const VERSION = 4;
+const VERSION = 5;
 const CACHE = `uwuPromptr-${VERSION}`;
+
+// On localhost the worker goes to the network first and falls back to the
+// cache. Cache-first there means every edit is invisible until VERSION is
+// bumped, with no update bar to explain why, which is a long way to travel
+// to find out you changed a file. Deployed origins are unaffected and stay
+// cache-first, which is what makes the app open offline.
+const IS_DEV =
+  self.location.hostname === "localhost" ||
+  self.location.hostname === "127.0.0.1" ||
+  self.location.hostname === "[::1]";
 
 // Everything the app needs to boot and run with no network at all. The
 // remote pairing library is deliberately absent: it is fetched from a CDN
@@ -115,7 +125,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(cacheFirst(request));
+  event.respondWith(IS_DEV ? networkFirstAsset(request) : cacheFirst(request));
 });
 
 /* -- Strategies -- */
@@ -127,6 +137,17 @@ async function navigationHandler(request) {
   // clean one sends an offline visitor to /remote.html the prompter instead.
   const path = url.pathname.replace(/\/$/, "");
   const target = path === "/remote" || path === "/remote.html" ? "/remote.html" : "/index.html";
+
+  // In development the freshest document wins, so an edit to the HTML shows
+  // up on reload rather than after a version bump.
+  if (IS_DEV) {
+    try {
+      return await fetch(request);
+    } catch {
+      const cached = await caches.match(target);
+      return cached || new Response("Offline", { status: 503 });
+    }
+  }
 
   const cached = await caches.match(target);
   if (cached) return cached;
@@ -147,6 +168,22 @@ async function networkFirst(request) {
       JSON.stringify({ success: false, error: "You appear to be offline." }),
       { status: 503, headers: { "Content-Type": "application/json" } }
     );
+  }
+}
+
+// Development only. The network decides, and the cache is there so the app
+// still works if the dev server goes away mid-session.
+async function networkFirstAsset(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    return cached || new Response("Offline", { status: 503 });
   }
 }
 
