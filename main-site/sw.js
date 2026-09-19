@@ -12,7 +12,7 @@
 // It is a plain integer, counting up by one. Bump it in the same change as
 // any edit to anything the worker serves, never as a separate tidy-up
 // afterwards: a version left behind is an update bar nobody ever sees.
-const VERSION = 5;
+const VERSION = 6;
 const CACHE = `uwuPromptr-${VERSION}`;
 
 // On localhost the worker goes to the network first and falls back to the

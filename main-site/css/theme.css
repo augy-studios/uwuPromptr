@@ -22,6 +22,20 @@ button {
 }
 button:disabled { cursor: not-allowed; opacity: 0.6; }
 
+/* An inline SVG sits on a text baseline, so its box is taller than the glyph
+   by the line's descender space and the icon rides high inside whatever is
+   centring it. Making it a block, and the [data-icon] span that wraps it a
+   flex box, means the icon's box is exactly the icon. Without this every
+   icon in the app is a couple of pixels above where it should be, which is
+   most visible in a round button. */
+svg { display: block; }
+
+[data-icon] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

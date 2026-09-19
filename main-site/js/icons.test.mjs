@@ -22,6 +22,7 @@ const TOLERANCE = 0.15;
 // centred on its bounding box can look wrong, so the eye wins over the
 // measurement; anything listed here is a decision rather than an oversight.
 const INTENTIONAL = {
+  play: "A triangle, whose visual mass is its centroid rather than its box centre. Nudged 0.75 units left of box-centred, so it does not read right-heavy in a round button.",
   edit: "A pencil on a diagonal, whose visual mass sits lower than its bounding box.",
   trash: "A bin whose lid reads as part of the top edge, so the body sits slightly low.",
   check: "A tick, which reads high if it is centred by its bounding box.",
@@ -207,6 +208,38 @@ for (const [name, svg] of Object.entries(icons)) {
 
   if (Math.abs(dx) <= TOLERANCE && Math.abs(dy) <= TOLERANCE) continue;
   (INTENTIONAL[name] ? allowed : failures).push({ name, dx, dy });
+}
+
+// A closed triangle is the one shape where the bounding box actively misleads:
+// its visual mass sits at the centroid, a third of the way along, so a
+// box-centred triangle looks pushed towards its own point. Report where the
+// centroid lands so the play glyph's nudge stays a deliberate number rather
+// than drifting back to "centred" on the next tidy-up.
+function triangleCentroids() {
+  const found = [];
+  for (const [name, svg] of Object.entries(icons)) {
+    for (const [, d] of svg.matchAll(/<path d="([^"]+)"/g)) {
+      // Exactly three points and an explicit close: M x y, two draws, z.
+      if (!/z\s*$/i.test(d)) continue;
+      const points = pathPoints(d, name);
+      const unique = points.filter(
+        (p, i) => i === 0 || p[0] !== points[i - 1][0] || p[1] !== points[i - 1][1]
+      );
+      if (unique.length !== 4) continue; // three corners plus the close
+      const corners = unique.slice(0, 3);
+      const cx = corners.reduce((sum, p) => sum + p[0], 0) / 3;
+      const cy = corners.reduce((sum, p) => sum + p[1], 0) / 3;
+      found.push({ name, cx: Number(cx.toFixed(2)), cy: Number(cy.toFixed(2)) });
+    }
+  }
+  return found;
+}
+
+for (const { name, cx, cy } of triangleCentroids()) {
+  console.log(
+    `shape ${name} is a triangle: centroid at (${cx}, ${cy}), ` +
+    `so its visual mass is ${(cx - 12).toFixed(2)} from the middle.`
+  );
 }
 
 for (const { name, dx, dy } of allowed) {

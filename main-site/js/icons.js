@@ -9,10 +9,13 @@ export const icons = {
   close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
   clock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,
 
-  // The triangle spans x 6 to 18, so its bounding box is centred on 12 like
-  // every other icon. Drawn from 7 to 19 it sits a whole unit right, which is
-  // plainly visible once the icon is inside a round button.
-  play: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5v15l12-7.5z"/></svg>`,
+  // Nudged 0.75 units left of a box-centred triangle, which spans 6 to 18.
+  // A triangle's visual mass is its centroid, a third of the way along rather
+  // than half, so centring its bounding box leaves it looking right-heavy in
+  // a round button. Moving the whole 2 units to the true centroid overshoots
+  // and reads left-heavy, so this splits the difference, which is the usual
+  // treatment for a play glyph.
+  play: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.25 4.5v15l12-7.5z"/></svg>`,
   pause: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v16M15 4v16"/></svg>`,
   reset: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>`,
   edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`,
