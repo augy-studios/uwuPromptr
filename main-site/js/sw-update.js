@@ -137,6 +137,40 @@ function registerWorker() {
   });
 }
 
+/**
+ * What the worker in control is actually running.
+ *
+ * Answered over a MessageChannel port, so this caller gets its own reply rather
+ * than every page on the origin hearing it. Resolves to null when no worker is
+ * in control, or when one does not answer, which is itself the useful answer:
+ * a worker too old to know the message is a worker that did not update.
+ */
+export function workerVersion({ timeoutMs = 2000 } = {}) {
+  const worker = navigator.serviceWorker?.controller;
+  if (!worker) return Promise.resolve(null);
+
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => {
+      channel.port1.close();
+      resolve(null);
+    }, timeoutMs);
+
+    channel.port1.onmessage = (event) => {
+      clearTimeout(timer);
+      channel.port1.close();
+      resolve(event.data?.version ?? null);
+    };
+
+    try {
+      worker.postMessage({ type: "version" }, [channel.port2]);
+    } catch {
+      clearTimeout(timer);
+      resolve(null);
+    }
+  });
+}
+
 export function initUpdateBar() {
   // Registration on `load`, not immediately: installing fetches everything
   // the worker precaches, and starting that while the page is still fetching

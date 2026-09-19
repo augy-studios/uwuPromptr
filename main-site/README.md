@@ -46,6 +46,8 @@ js/sw-update.js     the update prompt bar, per update-bar-spec.md
 js/app.js           the prompter page
 js/remote-page.js   the remote page
 sw.js               service worker: caches the shell, and waits
+check-precache.js   checks sw.js's list against what is on disk
+js/icons.test.mjs   checks every icon is centred on its viewBox
 index.html          the prompter
 remote.html         the remote, served at /remote by cleanUrls
 api/                Vercel serverless functions. Empty and unused.
@@ -129,6 +131,26 @@ It is a plain integer, counting up by one: `2`, then `3`. Not a semantic
 version, because nothing here reads it as one. Bump it in the same change
 that edits the HTML, CSS, or JavaScript, rather than as a tidy-up before a
 deploy, which is the step that gets skipped.
+
+Run both checks before a deploy. Neither needs an install:
+
+```bash
+node check-precache.js   # the precache list matches what is on disk
+node js/icons.test.mjs   # every icon is centred on its viewBox
+```
+
+`check-precache.js` fails on an entry with no file behind it, on a shipped
+file nobody precaches, and on a duplicate. The second of those is the one
+worth having: a file that is not precached works online and vanishes offline,
+which is the failure that only shows up on a train. A file that genuinely
+should not be cached goes in `DELIBERATELY_ABSENT` there with its reason.
+
+The worker keeps two caches. `uwuPromptr-shell-{VERSION}` holds the precached
+app and is dropped on activate, which is what makes a version bump the update
+mechanism. `uwuPromptr-fonts` is not versioned, because the font files are
+immutable and keyed by a URL that changes when they do; re-fetching them on
+every deploy would cost a flash of unstyled text for nothing. Anything not in
+the worker's `KEEP` allowlist is deleted on activate.
 
 The worker deliberately never calls `skipWaiting()` outside its message
 handler, and never calls `clients.claim()` on activate. A new version
