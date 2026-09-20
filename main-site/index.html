@@ -292,6 +292,15 @@
                 to the other if there is no shared wifi.
             </p>
             <p class="mode-note">Pairing needs a connection. The prompter itself keeps working offline.</p>
+
+            <!-- The other half of the pairing. Somebody holding the phone arrives
+                 here looking for where to type the code, and without this the
+                 remote page can only be reached by scanning the QR or by knowing
+                 the /remote URL already. -->
+            <p class="modal-section-label">Using this device as the remote?</p>
+            <a class="btn btn-block" id="remoteOpenBtn" href="/remote">
+                <span data-icon="remote"></span>Enter a remote ID instead
+            </a>
         </div>
     </div>
 

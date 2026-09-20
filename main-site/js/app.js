@@ -513,12 +513,15 @@ async function startRemote() {
 
   host = new RemoteHost();
   host.addEventListener("status", (e) => {
-    const { status, message } = e.detail;
+    const { status, message, dropped } = e.detail;
     setRemoteStatus(status, message);
     if (status === "connected") {
       broadcastScript();
       broadcastState(prompter.state());
     }
+    // A remote that paired and then went away takes the code with it. See
+    // retireRemoteCode.
+    if (dropped) retireRemoteCode();
   });
   host.addEventListener("message", (e) => handleRemoteMessage(e.detail));
 
@@ -577,6 +580,39 @@ async function regenerateRemoteCode() {
   hostCode = null;
   await startRemote();
   toast("New remote ID");
+}
+
+/* Guards the teardown below against itself. Closing a peer makes it report a
+   status, and the drop that started all this is still being handled when it
+   does, so without this a single disconnect would start two replacements and
+   the second would publish a code nothing had been told about. */
+let retiringRemoteCode = false;
+
+/**
+ * A remote paired and then went away, so the code it used is spent.
+ *
+ * The alternative is leaving it live, which means the code shown to a room
+ * during one session still reaches this prompter during the next one: anybody
+ * who noted it down keeps control of the script long after they left. A code
+ * that dies with its remote is one somebody has to be handed again.
+ *
+ * The cost is deliberate and worth naming: a remote that drops off a flaky
+ * wifi cannot reconnect on the old code and has to be given the new one. That
+ * is the trade being made, not an oversight.
+ */
+async function retireRemoteCode() {
+  if (retiringRemoteCode || !host) return;
+  retiringRemoteCode = true;
+
+  try {
+    host.close();
+    host = null;
+    hostCode = null;
+    await startRemote();
+    toast("Remote disconnected. New ID.");
+  } finally {
+    retiringRemoteCode = false;
+  }
 }
 
 function handleRemoteMessage(message) {

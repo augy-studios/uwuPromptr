@@ -65,6 +65,15 @@ body {
   border-color: color-mix(in srgb, var(--error) 30%, transparent);
 }
 
+/* A button that fills its column, for the ones that are a destination rather
+   than one choice among several on a row. Separate from .remote-controls
+   .btn-wide, which spans a grid the modals do not use. */
+.btn-block {
+  display: flex;
+  width: 100%;
+  padding: 12px 14px;
+}
+
 /* ---- top bar ---- */
 .topbar {
   flex: none;

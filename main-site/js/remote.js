@@ -164,6 +164,12 @@ class Connection extends EventTarget {
     // peer to peer traffic at all.
     let everOpened = false;
 
+    // A link we are tearing down ourselves. Its close handler still fires, and
+    // reporting that as the far end going away would be wrong: it is this end
+    // hanging up. The difference matters because a drop now retires the code,
+    // and a Stop that silently published a new one would be a puzzle.
+    const isOurs = () => this.link === link;
+
     link.on("open", () => {
       everOpened = true;
       this.setStatus("connected");
@@ -173,11 +179,13 @@ class Connection extends EventTarget {
       this.dispatchEvent(new CustomEvent("message", { detail: message }));
     });
     link.on("close", () => {
+      if (!isOurs()) return;
       this.link = null;
       if (everOpened) this.setStatus("dropped");
       else this.setStatus("unreachable");
     });
     link.on("error", () => {
+      if (!isOurs()) return;
       this.link = null;
       if (everOpened) this.setStatus("dropped");
       else this.setStatus("unreachable");
@@ -185,9 +193,13 @@ class Connection extends EventTarget {
   }
 
   close() {
-    this.link?.close();
-    this.peer?.destroy();
+    // Cleared before the close, so the handlers above see a link that is no
+    // longer the current one and stay quiet. The status this call ends on is
+    // idle, and nothing should overwrite it on the way there.
+    const link = this.link;
     this.link = null;
+    link?.close();
+    this.peer?.destroy();
     this.peer = null;
     this.setStatus("idle");
   }
@@ -199,9 +211,16 @@ export class RemoteHost extends Connection {
   // same state: nobody is connected and the code is still live. Both are
   // reported as waiting, so the panel says what to do rather than describing
   // the other device.
+  //
+  // The distinction is not thrown away, though: a remote that had paired and
+  // then went away retires the code, and `dropped` is the only signal that
+  // tells the two cases apart. It rides along on the waiting event rather than
+  // as a status of its own, so nothing reading `status` has to learn a fourth
+  // value to keep displaying the same sentence.
   setStatus(status, detail) {
-    const mapped = status === "dropped" || status === "unreachable" ? "waiting" : status;
-    super.setStatus(mapped, detail);
+    const dropped = status === "dropped";
+    const mapped = dropped || status === "unreachable" ? "waiting" : status;
+    super.setStatus(mapped, dropped ? { ...detail, dropped: true } : detail);
   }
 
   async start(code) {
@@ -215,7 +234,14 @@ export class RemoteHost extends Connection {
     this.peer.on("connection", (link) => {
       // One remote at a time. A second connection replaces the first rather
       // than fighting it for control of the same prompter.
-      this.link?.close();
+      //
+      // Detached before closing, so the outgoing link's close handler sees it
+      // is no longer current and does not report the handover as the remote
+      // dropping away. That report would retire the code out from under the
+      // remote that has this moment arrived on it.
+      const previous = this.link;
+      this.link = null;
+      previous?.close();
       this.bindLink(link);
     });
     this.peer.on("error", (error) => {

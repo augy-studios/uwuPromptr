@@ -93,10 +93,37 @@ function wireModals() {
       if (e.target === backdrop) closeModal(backdrop.id);
     });
   });
+
+  // Escape closes whatever is open. On a phone there is no Escape key, which
+  // is why the backdrop and the X matter more here, but somebody driving the
+  // remote from a laptop expects it.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const open = document.querySelector(".modal-backdrop:not(.hidden)");
+    if (open) closeModal(open.id);
+  });
+
   el("themeBtn").addEventListener("click", () => openModal("themeModal"));
 }
 
+/**
+ * Put away anything covering the controls.
+ *
+ * Called when the connection goes live: somebody who opened the theme panel
+ * while waiting to pair is now looking at a prompter they can drive, and the
+ * panel sitting over it is in the way of the thing they came for.
+ */
+function closeOpenModals() {
+  document.querySelectorAll(".modal-backdrop:not(.hidden)").forEach((backdrop) => {
+    closeModal(backdrop.id);
+  });
+}
+
 /* ---- connection ---- */
+
+// What setStatus last reported, so the transition into a live connection can
+// be told apart from the repeats that follow it.
+let wasLive = false;
 
 function setStatus(status, message) {
   const dot = el("statusDot");
@@ -144,6 +171,11 @@ function setStatus(status, message) {
   const live = status === "connected";
   el("controls").hidden = !live;
   el("connectForm").hidden = live;
+
+  // Only on the edge into a live connection, not on every state message: a
+  // connected remote that reopens the theme panel should keep it open.
+  if (live && !wasLive) closeOpenModals();
+  wasLive = live;
 }
 
 async function connect(code) {
