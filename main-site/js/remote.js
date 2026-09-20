@@ -118,6 +118,13 @@ function loadPeerJs() {
    { type: "edit",    name, body, rev }
                                      remote to prompter, a rewritten script
    { type: "hello" }                 remote to prompter, asking for state
+   { type: "bye" }                   remote to prompter, leaving on purpose
+
+   **`bye` is what tells a deliberate exit from an accident.** The channel
+   closing looks identical either way, and the prompter retires its code when
+   the remote is done with it. Without this it would retire on every dropped
+   packet and every page navigation, and somebody who stepped off the remote
+   page for two seconds would come back to a code that no longer exists.
 
    **`rev` is what stops the two ends fighting.** Both can edit the same
    script, and without a counter the last message to arrive wins: somebody
@@ -212,15 +219,12 @@ export class RemoteHost extends Connection {
   // reported as waiting, so the panel says what to do rather than describing
   // the other device.
   //
-  // The distinction is not thrown away, though: a remote that had paired and
-  // then went away retires the code, and `dropped` is the only signal that
-  // tells the two cases apart. It rides along on the waiting event rather than
-  // as a status of its own, so nothing reading `status` has to learn a fourth
-  // value to keep displaying the same sentence.
+  // The code outliving the drop is the point: a remote whose page reloaded or
+  // that navigated away is expected back on the same id, and only an explicit
+  // `bye` retires it.
   setStatus(status, detail) {
-    const dropped = status === "dropped";
-    const mapped = dropped || status === "unreachable" ? "waiting" : status;
-    super.setStatus(mapped, dropped ? { ...detail, dropped: true } : detail);
+    const mapped = status === "dropped" || status === "unreachable" ? "waiting" : status;
+    super.setStatus(mapped, detail);
   }
 
   async start(code) {

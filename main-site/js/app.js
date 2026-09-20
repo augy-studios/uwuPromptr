@@ -678,15 +678,12 @@ async function startRemote() {
 
   host = new RemoteHost();
   host.addEventListener("status", (e) => {
-    const { status, message, dropped } = e.detail;
+    const { status, message } = e.detail;
     setRemoteStatus(status, message);
     if (status === "connected") {
       broadcastScript();
       broadcastState(prompter.state());
     }
-    // A remote that paired and then went away takes the code with it. See
-    // retireRemoteCode.
-    if (dropped) retireRemoteCode();
   });
   host.addEventListener("message", (e) => handleRemoteMessage(e.detail));
 
@@ -754,16 +751,17 @@ async function regenerateRemoteCode() {
 let retiringRemoteCode = false;
 
 /**
- * A remote paired and then went away, so the code it used is spent.
+ * A remote said it was finished, so the code it used is spent.
  *
- * The alternative is leaving it live, which means the code shown to a room
- * during one session still reaches this prompter during the next one: anybody
- * who noted it down keeps control of the script long after they left. A code
- * that dies with its remote is one somebody has to be handed again.
+ * Leaving it live would mean the code shown to a room during one session still
+ * reaches this prompter during the next one: anybody who noted it down keeps
+ * control of the script long after they left. A code that dies when its remote
+ * signs off is one somebody has to be handed again.
  *
- * The cost is deliberate and worth naming: a remote that drops off a flaky
- * wifi cannot reconnect on the old code and has to be given the new one. That
- * is the trade being made, not an oversight.
+ * Only a `bye` gets here. This used to fire on any dropped channel, which read
+ * as the same event but is not: a remote whose page was reloaded, whose phone
+ * locked, or that went to the home page and came back had its code retired
+ * underneath it and could not return on the ID it was given.
  */
 async function retireRemoteCode() {
   if (retiringRemoteCode || !host) return;
@@ -781,6 +779,14 @@ async function retireRemoteCode() {
 }
 
 function handleRemoteMessage(message) {
+  // The remote is finished, rather than merely gone. Only this retires the
+  // code; a channel that simply closed is left alone, because the remote may
+  // be coming back and the code is how it gets here.
+  if (message.type === "bye") {
+    retireRemoteCode();
+    return;
+  }
+
   if (message.type === "hello") {
     broadcastScript();
     broadcastState(prompter.state());

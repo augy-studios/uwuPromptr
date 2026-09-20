@@ -174,7 +174,13 @@ function setStatus(status, message) {
 
   // Only on the edge into a live connection, not on every state message: a
   // connected remote that reopens the theme panel should keep it open.
-  if (live && !wasLive) closeOpenModals();
+  if (live && !wasLive) {
+    closeOpenModals();
+    // The form is about to be hidden, but it comes back on any later
+    // disconnect and "Reconnect" would then be describing a session that has
+    // already been and gone.
+    el("connectBtn").textContent = "Connect";
+  }
   wasLive = live;
 }
 
@@ -380,9 +386,32 @@ function wireControls() {
     if (e.key === "Enter") el("connectBtn").click();
   });
 
+  // Going to the prompter page is a full navigation: this document, its peer
+  // and the data channel all go with it, and coming back lands on a new page
+  // with nothing connected. Worth a word first, because the link looks like a
+  // tab and behaves like hanging up.
+  //
+  // The connection is deliberately not closed on the way out. Leaving it to
+  // die with the page means no `bye` is sent, so the prompter keeps the code
+  // live and the Reconnect button on the way back actually works.
+  el("homeLink").addEventListener("click", (e) => {
+    if (!wasLive) return;
+    if (!confirm("Leave the remote? This disconnects it from the prompter.")) {
+      e.preventDefault();
+    }
+  });
+
   el("playBtn").addEventListener("click", () => send({ type: "command", name: "toggle" }));
   el("resetBtn").addEventListener("click", () => send({ type: "command", name: "reset" }));
   el("disconnectBtn").addEventListener("click", () => {
+    // Before the close, while the channel is still open to carry it. This is
+    // what tells the prompter to retire the code: leaving without it means
+    // the code stays live, which is right for a reload and wrong for this.
+    send({ type: "bye" });
+    // Forgotten too, so returning to this page does not offer to reconnect on
+    // an id that is about to stop existing.
+    localStorage.removeItem("uwupromptr.lastRemoteId");
+
     client?.close();
     client = null;
     closeRemoteEditor();
@@ -442,7 +471,18 @@ function boot() {
   const code = fromUrl || remembered;
 
   if (code) el("codeInput").value = code;
-  if (fromUrl) connect(fromUrl);
+
+  if (fromUrl) {
+    connect(fromUrl);
+  } else if (isValidCode(remembered)) {
+    // Somebody who was connected a moment ago and came back: the page is new,
+    // so the old channel went with it, but the code is still theirs. Offered
+    // as one tap rather than done for them, because an automatic attempt on a
+    // code the prompter has since retired would open with an error nobody
+    // asked for.
+    el("connectBtn").textContent = "Reconnect";
+    el("connectBtn").focus();
+  }
 
   initUpdateBar();
 }
@@ -452,3 +492,20 @@ if (document.readyState === "loading") {
 } else {
   boot();
 }
+
+/* Restored from the back/forward cache.
+ *
+ * The page comes back exactly as it was left, which is the problem: boot never
+ * runs again, so a connection that died while the page was frozen is still
+ * being described as live. The controls would sit there taking taps that go
+ * nowhere. Putting the form back, with the code still in it, makes the state
+ * on screen true and the way back one tap. */
+window.addEventListener("pageshow", (e) => {
+  if (!e.persisted) return;
+  if (client?.status === "connected") return;
+
+  client?.close();
+  client = null;
+  setStatus("idle");
+  el("connectBtn").textContent = "Reconnect";
+});
