@@ -86,8 +86,14 @@
                 <span class="key-hint" aria-hidden="true">Ctrl+E</span>
             </div>
             <div class="key-action">
-                <button class="icon-btn" id="remoteBtn" type="button" aria-label="Remote control (Alt+R)" title="Remote control (Alt+R)">
+                <!-- The dot sits over the button's top right corner and says
+                     whether a remote is connected without the panel being
+                     open. Its meaning is carried in the button's name as well,
+                     since colour alone is not something everyone can read. -->
+                <button class="icon-btn has-status" id="remoteBtn" type="button"
+                    aria-label="Remote control (Alt+R)" title="Remote control (Alt+R)">
                     <span data-icon="remote"></span>
+                    <span class="btn-status-dot" id="remoteBtnDot" aria-hidden="true"></span>
                 </button>
                 <span class="key-hint" aria-hidden="true">Alt+R</span>
             </div>

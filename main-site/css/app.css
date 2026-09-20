@@ -555,6 +555,37 @@ input[type="range"]:focus-visible { outline: 2px solid var(--brand-ink); outline
 .status-dot.warn { background: var(--warn); }
 .status-dot.error { background: var(--error); }
 
+/* A status light on the corner of an icon button, for state worth knowing
+   without opening the panel that owns it.
+
+   The button has to establish a positioning context for it, which is what
+   .has-status is for; the dot is absolute against that corner rather than
+   laid out in the flow, so it does not shift the icon it sits over.
+
+   The ring uses --bg rather than a surface token because the surfaces are all
+   semi-transparent: a ring in one of those would let the icon strokes show
+   straight through it and defeat the point of having a ring at all. */
+.icon-btn.has-status { position: relative; }
+
+.btn-status-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+  box-shadow: 0 0 0 2px var(--bg);
+  transition: background 0.2s ease;
+  pointer-events: none;
+}
+
+/* Grey is the resting state and needs no class: the remote is not running.
+   Yellow is running but nobody is on it; green is a remote connected. */
+.btn-status-dot.waiting { background: var(--warn); }
+.btn-status-dot.connected { background: var(--ok); }
+.btn-status-dot.error { background: var(--error); }
+
 .remote-link {
   font-size: 0.85rem;
   color: var(--muted);

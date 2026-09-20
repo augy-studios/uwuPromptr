@@ -646,7 +646,12 @@ function remoteUrl(code) {
 function setRemoteStatus(status, message) {
   const dot = el("remoteDot");
   const text = el("remoteStatusText");
-  if (!dot || !text) return;
+  if (!dot || !text) {
+    // The panel is not in this document, but the button on the bar may still
+    // be, and the light on it is the part that shows while the panel is shut.
+    syncRemoteBadge(status, message || "");
+    return;
+  }
 
   dot.className = "status-dot";
   switch (status) {
@@ -668,6 +673,38 @@ function setRemoteStatus(status, message) {
     default:
       text.textContent = "The remote is not running.";
   }
+
+  syncRemoteBadge(status, text.textContent);
+}
+
+/**
+ * The light on the corner of the topbar's remote button.
+ *
+ * Grey for not running, yellow for running but unpaired, green for a remote
+ * connected. It is the one piece of the remote panel worth seeing while the
+ * panel is shut, because "is the phone still holding this" is the question
+ * somebody has mid-read, when opening a modal over the script is the last
+ * thing they want to do.
+ *
+ * The sentence the panel would have shown goes on the button's name too. A
+ * colour on its own is not readable by everybody, and it is the only thing
+ * this dot is.
+ */
+function syncRemoteBadge(status, description) {
+  const badge = el("remoteBtnDot");
+  if (!badge) return;
+
+  const state =
+    status === "connected" ? "connected"
+    : status === "waiting" || status === "connecting" ? "waiting"
+    : status === "error" ? "error"
+    : "";
+
+  badge.className = `btn-status-dot${state ? ` ${state}` : ""}`;
+
+  const label = `Remote control (Alt+R). ${description}`;
+  el("remoteBtn").setAttribute("aria-label", label);
+  el("remoteBtn").setAttribute("title", label);
 }
 
 async function startRemote() {
@@ -1026,6 +1063,9 @@ function boot() {
   wireTransport();
   wireKeyboard();
   wireRemote();
+  // The resting state, so the button's name matches its grey light from the
+  // start rather than only after the remote has been opened once.
+  setRemoteStatus("idle");
 
   loadActiveScript();
   syncToolbar(prompter.state());
