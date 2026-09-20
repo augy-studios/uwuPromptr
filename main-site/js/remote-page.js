@@ -130,6 +130,11 @@ function setStatus(status, message) {
   const text = el("statusText");
   dot.className = "status-dot";
 
+  // The "you were last connected to this ID" note describes the moment the
+  // page opened. Once anything has been attempted the status line below says
+  // what is actually happening, and the two together would contradict.
+  if (status !== "idle") el("connectStatus").hidden = true;
+
   switch (status) {
     case "connected":
       dot.classList.add("ok");
@@ -476,11 +481,16 @@ function boot() {
     connect(fromUrl);
   } else if (isValidCode(remembered)) {
     // Somebody who was connected a moment ago and came back: the page is new,
-    // so the old channel went with it, but the code is still theirs. Offered
-    // as one tap rather than done for them, because an automatic attempt on a
-    // code the prompter has since retired would open with an error nobody
-    // asked for.
+    // so the old channel went with it, but the code is still theirs. The
+    // prompter keeps publishing the same id until it is deliberately retired,
+    // so this usually still reaches it.
+    //
+    // One tap rather than automatic, so a page opened from a bookmark days
+    // later does not reach for a prompter that is not running and greet
+    // somebody with an error they did not ask for.
     el("connectBtn").textContent = "Reconnect";
+    el("connectStatus").textContent = "You were last connected to this ID.";
+    el("connectStatus").hidden = false;
     el("connectBtn").focus();
   }
 
@@ -508,4 +518,6 @@ window.addEventListener("pageshow", (e) => {
   client = null;
   setStatus("idle");
   el("connectBtn").textContent = "Reconnect";
+  el("connectStatus").textContent = "The connection ended while you were away.";
+  el("connectStatus").hidden = false;
 });

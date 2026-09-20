@@ -6,6 +6,7 @@ const APP_KEY = "uwupromptr";
 const KEY_SCRIPTS = `${APP_KEY}.scripts`;
 const KEY_ACTIVE = `${APP_KEY}.activeScript`;
 const KEY_SETTINGS = `${APP_KEY}.settings`;
+const KEY_HOST_CODE = `${APP_KEY}.hostCode`;
 
 export const SETTING_RANGES = {
   // Granular, which is the point of this app: promptr.tv moves in whole
@@ -56,6 +57,34 @@ function writeJson(key, value) {
 
 export function newId() {
   return `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+}
+
+/* The remote id this prompter publishes.
+
+   Kept rather than minted on every start, because a code that changes whenever
+   the panel is reopened or the page reloaded is a code the remote cannot be
+   told to come back on: the phone remembers what it was given, and a prompter
+   that has quietly moved on leaves it holding an id that no longer exists.
+
+   It survives a reload for the same reason. Retiring it is a deliberate act,
+   from the New ID button or from a remote that signed off, and that is the
+   only thing that clears it. */
+export function getStoredHostCode() {
+  try {
+    return localStorage.getItem(KEY_HOST_CODE) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setStoredHostCode(code) {
+  try {
+    if (code) localStorage.setItem(KEY_HOST_CODE, code);
+    else localStorage.removeItem(KEY_HOST_CODE);
+  } catch {
+    // See writeJson. A code that cannot be stored still works for this
+    // session; it just will not be the same one after a reload.
+  }
 }
 
 const WELCOME = `Welcome to uwuPromptr.

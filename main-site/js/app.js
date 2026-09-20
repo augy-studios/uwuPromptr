@@ -16,10 +16,12 @@ import {
   getActiveScript,
   getActiveScriptId,
   getScripts,
+  getStoredHostCode,
   setActiveScriptId,
+  setStoredHostCode,
   updateScript,
 } from "./storage.js";
-import { RemoteHost, generateCode } from "./remote.js";
+import { RemoteHost, generateCode, isValidCode } from "./remote.js";
 import { qrToSvg } from "./qr.js";
 import { initUpdateBar } from "./sw-update.js";
 
@@ -671,14 +673,30 @@ function setRemoteStatus(status, message) {
 async function startRemote() {
   if (host) return;
 
-  hostCode = generateCode();
+  // The same code this prompter published last time, so a remote that was
+  // paired before can come back on the id it was given. A fresh one is minted
+  // only when there is nothing to reuse, or when the last one was retired.
+  const stored = getStoredHostCode();
+  hostCode = isValidCode(stored) ? stored : generateCode();
+  setStoredHostCode(hostCode);
+
   el("remoteCode").textContent = hostCode;
   el("remoteUrl").textContent = remoteUrl(hostCode);
   el("qrHolder").innerHTML = qrToSvg(remoteUrl(hostCode));
 
   host = new RemoteHost();
   host.addEventListener("status", (e) => {
-    const { status, message } = e.detail;
+    const { status, message, taken } = e.detail;
+
+    // The stored code is spoken for, so it is not this prompter's to publish.
+    // Swapping to a fresh one is better than showing an error about a code
+    // nobody chose; the remote is told the new one the usual way, by being
+    // read off the screen.
+    if (taken) {
+      recoverFromTakenCode();
+      return;
+    }
+
     setRemoteStatus(status, message);
     if (status === "connected") {
       broadcastScript();
@@ -740,6 +758,8 @@ async function regenerateRemoteCode() {
   host?.close();
   host = null;
   hostCode = null;
+  // Cleared, or startRemote would reuse the very code being given up.
+  setStoredHostCode("");
   await startRemote();
   toast("New remote ID");
 }
@@ -749,6 +769,35 @@ async function regenerateRemoteCode() {
    does, so without this a single disconnect would start two replacements and
    the second would publish a code nothing had been told about. */
 let retiringRemoteCode = false;
+
+/**
+ * The stored code is already in use, so publish a different one.
+ *
+ * Only ever once per start. A second collision is not another stale code from
+ * a previous session, it is something systematically wrong, and retrying in a
+ * loop would hammer the broker while showing nothing useful; the error the
+ * panel would otherwise have shown is the right outcome then.
+ */
+let recoveringTakenCode = false;
+
+async function recoverFromTakenCode() {
+  if (recoveringTakenCode) {
+    setRemoteStatus("error", "That code is already in use. Generate a new one.");
+    return;
+  }
+  recoveringTakenCode = true;
+
+  host?.close();
+  host = null;
+  hostCode = null;
+  setStoredHostCode("");
+
+  try {
+    await startRemote();
+  } finally {
+    recoveringTakenCode = false;
+  }
+}
 
 /**
  * A remote said it was finished, so the code it used is spent.
@@ -771,6 +820,9 @@ async function retireRemoteCode() {
     host.close();
     host = null;
     hostCode = null;
+    // As in regenerateRemoteCode: the stored code is the thing being retired,
+    // so it has to go before a new one is published.
+    setStoredHostCode("");
     await startRemote();
     toast("Remote disconnected. New ID.");
   } finally {

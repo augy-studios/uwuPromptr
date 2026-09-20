@@ -249,10 +249,16 @@ export class RemoteHost extends Connection {
       this.bindLink(link);
     });
     this.peer.on("error", (error) => {
-      // An id already taken means another tab of this prompter is holding
-      // the code. Reporting it is more use than silently retrying under a
-      // different one the person cannot see.
-      this.setStatus("error", { message: describePeerError(error) });
+      // An id already taken means something else is holding this code: another
+      // tab of the prompter, or the broker still releasing the peer from a
+      // page that has just reloaded. The code is kept between sessions now, so
+      // this is the ordinary collision rather than a rarity, and `taken` lets
+      // the panel retry under a fresh one instead of stranding somebody on an
+      // error they did not cause.
+      this.setStatus("error", {
+        message: describePeerError(error),
+        taken: error?.type === "unavailable-id",
+      });
     });
   }
 }
