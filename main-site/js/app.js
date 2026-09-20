@@ -191,8 +191,31 @@ function wireScripts() {
 
 /* ---- editor ---- */
 
+/* What the script said when the editor opened, and which script that was.
+   Cancelling puts this back.
+
+   It has to be captured rather than re-read on the way out, because autosave
+   has been writing to storage every 400ms since the first keystroke: by the
+   time somebody cancels, what is stored is already their edit. Without a
+   snapshot there is nothing left to go back to, and "cancel" can only mean
+   "skip the last save", which is not what the word promises. */
+let editorSnapshot = null;
+
+/* The pending autosave, at module scope so closing the editor can call it off.
+
+   A keystroke schedules a write 400ms out. Cancelling inside that window used
+   to restore the snapshot and then let the timer fire, putting the discarded
+   text straight back and undoing the undo. */
+let autosaveTimer = null;
+
+function cancelPendingAutosave() {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+}
+
 function openEditor() {
   const script = getActiveScript();
+  editorSnapshot = { id: script.id, name: script.name, body: script.body };
   el("editorName").value = script.name;
   el("editorBody").value = script.body;
   el("editor").classList.remove("hidden");
@@ -204,7 +227,21 @@ function openEditor() {
   broadcastEditing(true);
 }
 
+// Whether the fields differ from what the editor opened with. The name is
+// compared after the same trimming and fallback that a save applies, so
+// trailing whitespace alone is not treated as an edit worth warning about.
+function editorHasChanges() {
+  if (!editorSnapshot) return false;
+  const name = el("editorName").value.trim() || "Untitled script";
+  return name !== editorSnapshot.name || el("editorBody").value !== editorSnapshot.body;
+}
+
 function closeEditor({ save = true } = {}) {
+  // Before either branch writes. Whichever way this editor is closing, the
+  // value it decides on is the final one and a queued keystroke must not land
+  // on top of it.
+  cancelPendingAutosave();
+
   if (save) {
     const id = getActiveScriptId();
     const name = el("editorName").value.trim() || "Untitled script";
@@ -212,16 +249,63 @@ function closeEditor({ save = true } = {}) {
     // Anything the remote is part way through editing is now answering an
     // older script than this one.
     scriptRev += 1;
+  } else if (editorSnapshot) {
+    // Put back what the editor opened with, undoing every autosave it made.
+    // Written against the snapshot's own id rather than the active one, so a
+    // script that was switched away from underneath is not overwritten with
+    // another script's text.
+    updateScript(editorSnapshot.id, {
+      name: editorSnapshot.name,
+      body: editorSnapshot.body,
+    });
+    scriptRev += 1;
   }
+
+  editorSnapshot = null;
   el("editor").classList.add("hidden");
   broadcastEditing(false);
   loadActiveScript();
 }
 
+/**
+ * Close without saving, asking first if there is anything to lose.
+ *
+ * The confirm is skipped when nothing was typed, because an editor opened and
+ * closed again should not interrogate somebody about work they did not do.
+ */
+function cancelEditor() {
+  if (editorHasChanges() && !confirm("Discard your changes to this script?")) return;
+  closeEditor({ save: false });
+}
+
 function wireEditor() {
   el("editBtn").addEventListener("click", openEditor);
   el("editorDone").addEventListener("click", () => closeEditor({ save: true }));
-  el("editorCancel").addEventListener("click", () => closeEditor({ save: false }));
+  el("editorCancel").addEventListener("click", cancelEditor);
+
+  // Ctrl+S saves and closes, the same as Done, and Escape cancels. Bound on
+  // the editor rather than the document so they only ever mean this while it
+  // is open, and so the global handler never sees them.
+  //
+  // Ctrl+S has to be taken from the browser, whose own Save Page As is not a
+  // useful thing to offer somebody writing a script. Escape is left to bubble
+  // when the editor is closed, where wireKeyboard resets the prompter with it.
+  el("editor").addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
+      e.preventDefault();
+      closeEditor({ save: true });
+      toast("Script saved");
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      // Stops the global handler seeing this one too, which would reset the
+      // prompter behind the editor that just closed.
+      e.stopPropagation();
+      cancelEditor();
+    }
+  });
 
   // Text out of a word processor arrives with smart quotes and hard breaks
   // mid-sentence, which read badly at 60px.
@@ -237,10 +321,10 @@ function wireEditor() {
   });
 
   // Saved as they type, so closing the tab mid-sentence loses nothing.
-  let saveTimer = null;
   const autosave = () => {
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
+    cancelPendingAutosave();
+    autosaveTimer = setTimeout(() => {
+      autosaveTimer = null;
       updateScript(getActiveScriptId(), {
         name: el("editorName").value.trim() || "Untitled script",
         body: el("editorBody").value,
@@ -412,12 +496,11 @@ function wakeChrome() {
 
 function wireKeyboard() {
   document.addEventListener("keydown", (e) => {
-    // Never steal a key from the editor or a text field.
+    // Never steal a key from the editor or a text field. The editor binds its
+    // own Ctrl+S and Escape and stops them here, so this handler does not have
+    // to know about it; any other field keeps every key it is sent.
     const tag = e.target.tagName;
-    if (tag === "TEXTAREA" || tag === "INPUT") {
-      if (e.key === "Escape") closeEditor({ save: true });
-      return;
-    }
+    if (tag === "TEXTAREA" || tag === "INPUT") return;
 
     const coarse = e.shiftKey;
 
