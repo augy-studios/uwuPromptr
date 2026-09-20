@@ -343,7 +343,11 @@ function wireEditor() {
 function syncToolbar(state) {
   const playIcon = document.querySelector("#playBtn [data-icon]");
   playIcon.setAttribute("data-icon", state.playing ? "pause" : "play");
-  el("playBtn").setAttribute("aria-label", state.playing ? "Pause" : "Play");
+  // The shortcut stays on the end of the name as the verb flips, so the
+  // button does not quietly lose its hint the first time it is pressed.
+  const playName = `${state.playing ? "Pause" : "Play"} (Space)`;
+  el("playBtn").setAttribute("aria-label", playName);
+  el("playBtn").setAttribute("title", playName);
   hydrateIcons(el("playBtn"));
 
   el("fontValue").innerHTML = `Font <span>${state.fontSize}</span>`;
@@ -494,6 +498,65 @@ function wakeChrome() {
 
 /* ---- keyboard ---- */
 
+/**
+ * Which modal shortcut a keypress is, if any.
+ *
+ * Ctrl+E and Ctrl+P take keys the browser also wants (print, in Chrome's
+ * case), which is the trade being made deliberately: somebody in a prompter
+ * reaching for Ctrl+P wants the settings, not a paper copy of their script.
+ * Alt carries the two where that trade would be a bad one.
+ */
+function modalShortcut(e) {
+  const key = e.key.toLowerCase();
+
+  if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+    if (key === "e") return "editor";
+    if (key === "p") return "settingsModal";
+    return null;
+  }
+
+  if (e.altKey && !e.ctrlKey && !e.metaKey) {
+    if (key === "r") return "remoteModal";
+    if (key === "t") return "themeModal";
+  }
+
+  return null;
+}
+
+/**
+ * Open what the shortcut names, or close it if it is already open.
+ *
+ * Pressing the same combination twice putting the panel away is what a single
+ * key for a panel is expected to do, and it means every one of these has a way
+ * out that does not need the mouse or a second shortcut.
+ */
+function toggleModalShortcut(target) {
+  // The editor is not a modal: it is a section of the stage with its own
+  // open and close, and its Escape already cancels.
+  if (target === "editor") {
+    if (el("editor").classList.contains("hidden")) openEditor();
+    else closeEditor({ save: true });
+    return;
+  }
+
+  if (!document.getElementById(target).classList.contains("hidden")) {
+    closeModal(target);
+    return;
+  }
+
+  // Anything else open first, so two panels never stack.
+  document.querySelectorAll(".modal-backdrop:not(.hidden)").forEach((m) => closeModal(m.id));
+
+  // The remote panel starts the host when it opens, exactly as the button
+  // does. Going straight to openModal would show a dead panel with no code.
+  if (target === "remoteModal") {
+    openRemotePanel();
+    return;
+  }
+
+  openModal(target);
+}
+
 function wireKeyboard() {
   document.addEventListener("keydown", (e) => {
     // Never steal a key from the editor or a text field. The editor binds its
@@ -501,6 +564,22 @@ function wireKeyboard() {
     // to know about it; any other field keeps every key it is sent.
     const tag = e.target.tagName;
     if (tag === "TEXTAREA" || tag === "INPUT") return;
+
+    // The modal shortcuts, which carry a modifier so they cannot collide with
+    // the single letters below. Ctrl and Meta are both accepted so the same
+    // keys work on a Mac without a second set of hints to explain which.
+    //
+    // Alt is used for the two that Ctrl cannot have: Ctrl+R is reload and
+    // Ctrl+T is a new tab, and taking either from the browser is a worse
+    // trade than the shortcut is worth.
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      const combo = modalShortcut(e);
+      if (!combo) return;
+      e.preventDefault();
+      toggleModalShortcut(combo);
+      wakeChrome();
+      return;
+    }
 
     const coarse = e.shiftKey;
 
@@ -531,6 +610,9 @@ function wireKeyboard() {
         prompter.nudge("speed", -1, coarse);
         break;
       case "Escape":
+        // Whatever is open, or the scroll position when nothing is. Only the
+        // position: the script itself is untouched, so there is nothing here
+        // that would need an undo.
         e.preventDefault();
         if (document.querySelector(".modal-backdrop:not(.hidden)")) {
           document.querySelectorAll(".modal-backdrop:not(.hidden)").forEach((m) => closeModal(m.id));
@@ -818,15 +900,17 @@ function applyRemoteEdit(message) {
   loadActiveScript();
 }
 
+/* Opening the remote panel, from the button or the shortcut. Starts the host
+   unless it was deliberately stopped: reopening the panel is not a request to
+   undo that, and the Start button is right there. */
+function openRemotePanel() {
+  openModal("remoteModal");
+  if (!stoppedByHand) startRemote();
+  syncRemoteControls();
+}
+
 function wireRemote() {
-  el("remoteBtn").addEventListener("click", () => {
-    openModal("remoteModal");
-    // Opening the panel starts the remote, unless it was deliberately stopped:
-    // reopening it is not a request to undo that, and the Start button is
-    // right there.
-    if (!stoppedByHand) startRemote();
-    syncRemoteControls();
-  });
+  el("remoteBtn").addEventListener("click", openRemotePanel);
 
   el("remoteStop").addEventListener("click", () => {
     stoppedByHand = true;

@@ -75,19 +75,34 @@
             <span class="script-name" id="currentScriptName">Loading</span>
         </button>
 
+        <!-- Each action carries its shortcut underneath. The hint is aria-hidden
+             because the accessible name already ends in the same keys, and a
+             screen reader should not read them twice. -->
         <div class="topbar-actions">
-            <button class="icon-btn" id="editBtn" type="button" aria-label="Edit script">
-                <span data-icon="edit"></span>
-            </button>
-            <button class="icon-btn" id="remoteBtn" type="button" aria-label="Remote control">
-                <span data-icon="remote"></span>
-            </button>
-            <button class="icon-btn" id="settingsBtn" type="button" aria-label="Prompter settings">
-                <span data-icon="settings"></span>
-            </button>
-            <button class="icon-btn" id="themeBtn" type="button" aria-label="Theme">
-                <span data-icon="sun"></span>
-            </button>
+            <div class="key-action">
+                <button class="icon-btn" id="editBtn" type="button" aria-label="Edit script (Ctrl+E)" title="Edit script (Ctrl+E)">
+                    <span data-icon="edit"></span>
+                </button>
+                <span class="key-hint" aria-hidden="true">Ctrl+E</span>
+            </div>
+            <div class="key-action">
+                <button class="icon-btn" id="remoteBtn" type="button" aria-label="Remote control (Alt+R)" title="Remote control (Alt+R)">
+                    <span data-icon="remote"></span>
+                </button>
+                <span class="key-hint" aria-hidden="true">Alt+R</span>
+            </div>
+            <div class="key-action">
+                <button class="icon-btn" id="settingsBtn" type="button" aria-label="Prompter settings (Ctrl+P)" title="Prompter settings (Ctrl+P)">
+                    <span data-icon="settings"></span>
+                </button>
+                <span class="key-hint" aria-hidden="true">Ctrl+P</span>
+            </div>
+            <div class="key-action">
+                <button class="icon-btn" id="themeBtn" type="button" aria-label="Theme (Alt+T)" title="Theme (Alt+T)">
+                    <span data-icon="sun"></span>
+                </button>
+                <span class="key-hint" aria-hidden="true">Alt+T</span>
+            </div>
         </div>
     </header>
 
@@ -110,37 +125,56 @@
     </main>
 
     <footer class="transport">
-        <button class="play-btn" id="playBtn" type="button" aria-label="Play">
-            <span data-icon="play"></span>
-        </button>
-
-        <button class="icon-btn" id="resetBtn" type="button" aria-label="Reset to the top">
-            <span data-icon="reset"></span>
-        </button>
-
-        <div class="stepper">
-            <button class="icon-btn" type="button" data-nudge="fontSize:-1" aria-label="Smaller font">
-                <span data-icon="minus"></span>
+        <div class="key-action">
+            <button class="play-btn" id="playBtn" type="button" aria-label="Play (Space)" title="Play (Space)">
+                <span data-icon="play"></span>
             </button>
-            <button class="stepper-value" id="fontValue" type="button" aria-label="Font size, opens settings"></button>
-            <button class="icon-btn" type="button" data-nudge="fontSize:1" aria-label="Larger font">
-                <span data-icon="plus"></span>
-            </button>
+            <span class="key-hint" aria-hidden="true">Space</span>
         </div>
 
-        <div class="stepper">
-            <button class="icon-btn" type="button" data-nudge="speed:-1" aria-label="Slower">
-                <span data-icon="minus"></span>
+        <div class="key-action">
+            <button class="icon-btn" id="resetBtn" type="button" aria-label="Reset to the top (Esc)" title="Reset to the top (Esc)">
+                <span data-icon="reset"></span>
             </button>
-            <button class="stepper-value" id="speedValue" type="button" aria-label="Speed, opens settings"></button>
-            <button class="icon-btn" type="button" data-nudge="speed:1" aria-label="Faster">
-                <span data-icon="plus"></span>
-            </button>
+            <span class="key-hint" aria-hidden="true">Esc</span>
         </div>
 
-        <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="Fullscreen">
-            <span data-icon="fullscreen"></span>
-        </button>
+        <!-- One hint under the whole pill rather than six under its buttons:
+             the pair of keys belongs to the setting, not to the minus and the
+             plus separately, and three captions across a 32px row would not be
+             readable. -->
+        <div class="key-action is-stepper">
+            <div class="stepper">
+                <button class="icon-btn" type="button" data-nudge="fontSize:-1" aria-label="Smaller font (Down arrow)" title="Smaller font (Down arrow)">
+                    <span data-icon="minus"></span>
+                </button>
+                <button class="stepper-value" id="fontValue" type="button" aria-label="Font size, opens settings"></button>
+                <button class="icon-btn" type="button" data-nudge="fontSize:1" aria-label="Larger font (Up arrow)" title="Larger font (Up arrow)">
+                    <span data-icon="plus"></span>
+                </button>
+            </div>
+            <span class="key-hint" aria-hidden="true">&uarr; &darr;</span>
+        </div>
+
+        <div class="key-action is-stepper">
+            <div class="stepper">
+                <button class="icon-btn" type="button" data-nudge="speed:-1" aria-label="Slower (Left arrow)" title="Slower (Left arrow)">
+                    <span data-icon="minus"></span>
+                </button>
+                <button class="stepper-value" id="speedValue" type="button" aria-label="Speed, opens settings"></button>
+                <button class="icon-btn" type="button" data-nudge="speed:1" aria-label="Faster (Right arrow)" title="Faster (Right arrow)">
+                    <span data-icon="plus"></span>
+                </button>
+            </div>
+            <span class="key-hint" aria-hidden="true">&larr; &rarr;</span>
+        </div>
+
+        <div class="key-action is-fullscreen">
+            <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="Fullscreen (F)" title="Fullscreen (F)">
+                <span data-icon="fullscreen"></span>
+            </button>
+            <span class="key-hint" aria-hidden="true">F</span>
+        </div>
 
         <div class="timer" id="timer" role="timer" aria-label="Elapsed time">00:00:00</div>
     </footer>
@@ -171,6 +205,7 @@
                 </button>
             </div>
 
+            <p class="modal-section-label section-head">Text</p>
             <div class="setting">
                 <label class="setting-head" for="fontSizeRange">Font size <output id="fontSizeRangeOut"></output></label>
                 <div class="setting-row">
@@ -226,7 +261,7 @@
                 </div>
             </div>
 
-            <p class="modal-section-label">Display</p>
+            <p class="modal-section-label section-head">Display</p>
             <div class="toggle-grid">
                 <button class="toggle-btn" type="button" data-toggle="flipX" aria-pressed="false">
                     <span data-icon="flipX"></span>Mirror across
@@ -242,15 +277,22 @@
                 </button>
             </div>
 
-            <p class="modal-section-label">Keyboard</p>
+            <p class="modal-section-label section-head">Keyboard</p>
             <div class="shortcut-row"><span>Start and stop</span><kbd>Space</kbd></div>
             <div class="shortcut-row"><span>Font size</span><kbd>Up</kbd><kbd>Down</kbd></div>
             <div class="shortcut-row"><span>Speed</span><kbd>Left</kbd><kbd>Right</kbd></div>
             <div class="shortcut-row"><span>Bigger steps</span><kbd>Shift</kbd></div>
             <div class="shortcut-row"><span>Fullscreen</span><kbd>F</kbd></div>
-            <div class="shortcut-row"><span>Reset</span><kbd>Esc</kbd></div>
+            <div class="shortcut-row"><span>Reset to the top</span><kbd>Esc</kbd></div>
 
-            <p class="modal-section-label">While editing</p>
+            <p class="modal-section-label section-head">Panels</p>
+            <div class="shortcut-row"><span>Edit script</span><kbd>Ctrl</kbd><kbd>E</kbd></div>
+            <div class="shortcut-row"><span>Prompter settings</span><kbd>Ctrl</kbd><kbd>P</kbd></div>
+            <div class="shortcut-row"><span>Remote control</span><kbd>Alt</kbd><kbd>R</kbd></div>
+            <div class="shortcut-row"><span>Theme</span><kbd>Alt</kbd><kbd>T</kbd></div>
+            <div class="shortcut-row"><span>Close the panel</span><kbd>Esc</kbd></div>
+
+            <p class="modal-section-label section-head">While editing</p>
             <div class="shortcut-row"><span>Save and close</span><kbd>Ctrl</kbd><kbd>S</kbd></div>
             <div class="shortcut-row"><span>Discard changes</span><kbd>Esc</kbd></div>
         </div>

@@ -255,6 +255,9 @@ body {
 .transport {
   flex: none;
   display: flex;
+  /* The hints make each control a two-row column of differing height, so the
+     row lines up on the buttons rather than the captions: flex-start would
+     hang the taller play button below its neighbours. */
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
@@ -311,6 +314,30 @@ body {
   white-space: nowrap;
 }
 .stepper-value span { color: var(--muted-strong); }
+
+/* A control with its keyboard shortcut printed underneath.
+
+   The hint is a caption, not a control: it never takes a pointer event, so
+   clicking just below a button still hits the button rather than dying on the
+   label. The column is centred so a wide hint like "Ctrl+P" stays under the
+   middle of a narrower button. */
+.key-action {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+
+.key-hint {
+  font-size: 0.62rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
 
 .timer {
   margin-left: auto;
@@ -590,12 +617,17 @@ input[type="range"]:focus-visible { outline: 2px solid var(--brand-ink); outline
 .shortcut-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 6px;
   font-size: 0.85rem;
   color: var(--muted);
   padding: 4px 0;
 }
+
+/* The name takes the slack, so the keys group together on the right instead of
+   being pushed to opposite ends of the row. "Ctrl" at one edge and "S" at the
+   other reads as two separate shortcuts rather than one combination. */
+.shortcut-row > span:first-child { margin-right: auto; }
+
 kbd {
   padding: 2px 8px;
   border-radius: 8px;
@@ -750,10 +782,20 @@ body.locked { overflow: hidden; }
      The play button and the two steppers are what the bar is for, so they
      stay, and the row keeps its single line rather than overflowing. */
   .transport { gap: 4px; padding-left: 8px; padding-right: 8px; }
-  .transport .timer,
-  .transport #fullscreenBtn { display: none; }
-  .stepper { flex: 1 1 0; min-width: 0; justify-content: space-between; }
+  .transport .timer { display: none; }
+  /* The whole column, so hiding the button does not leave its hint behind.
+     Marked with a class rather than :has(), so the bar still lays out on a
+     browser without it instead of showing a stray caption. */
+  .transport .key-action.is-fullscreen { display: none; }
+  /* The growing moved out to the wrapper, which is now the flex item. */
+  .transport .key-action.is-stepper { flex: 1 1 0; min-width: 0; }
+  .stepper { width: 100%; min-width: 0; justify-content: space-between; }
   .stepper-value { min-width: 0; font-size: 0.78rem; padding: 0 2px; }
+
+  /* There is no keyboard to speak of here, and the captions cost a row of
+     height the bar cannot spare. The names and tooltips keep the information
+     for anybody who does attach one. */
+  .key-hint { display: none; }
 }
 
 /* Under about 700px the two steppers and the clock cannot share a row with

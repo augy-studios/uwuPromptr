@@ -202,6 +202,29 @@ body {
   margin-top: 4px;
 }
 
+/* Where the label genuinely heads a group of controls, it is sized and
+   weighted to read as a heading rather than as the quietest text in the
+   panel, which is what a muted 0.85rem label above full-size controls
+   actually was. The rule underneath separates one group from the next
+   without needing a divider element in the markup.
+
+   Applied by class rather than to every .modal-section-label, because several
+   of them are instructions ("Enter the remote ID shown on the prompter")
+   rather than headings, and a bold underline would be wrong on those. */
+.modal-section-label.section-head {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+  margin-top: 18px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+/* The first group sits directly under the modal's own title and does not need
+   the extra space that separates one group from the next. */
+.modal-section-label.section-head:first-of-type { margin-top: 2px; }
+
 body.modal-open { overflow: hidden; }
 
 /* ---- mode toggle ---- */
