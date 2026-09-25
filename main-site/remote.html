@@ -102,25 +102,46 @@
                     <span data-icon="play"></span><span id="playLabel">Play</span>
                 </button>
 
-                <button class="btn" type="button" data-nudge="fontSize:-1">
-                    <span data-icon="minus"></span>Font
-                </button>
-                <button class="btn" type="button" data-nudge="fontSize:1">
-                    <span data-icon="plus"></span>Font
-                </button>
+                <!-- The outer pair is the big step, what Shift adds to the
+                     arrow keys on the prompter. -->
+                <div class="nudge-row">
+                    <button class="btn" type="button" data-nudge="fontSize:-1" data-coarse
+                        aria-label="Font smaller by 4" title="Font smaller by 4">
+                        <span data-icon="chevronsLeft"></span>
+                    </button>
+                    <button class="btn" type="button" data-nudge="fontSize:-1">
+                        <span data-icon="minus"></span>Font
+                    </button>
+                    <button class="btn" type="button" data-nudge="fontSize:1">
+                        <span data-icon="plus"></span>Font
+                    </button>
+                    <button class="btn" type="button" data-nudge="fontSize:1" data-coarse
+                        aria-label="Font larger by 4" title="Font larger by 4">
+                        <span data-icon="chevronsRight"></span>
+                    </button>
+                </div>
 
-                <button class="btn" type="button" data-nudge="speed:-1">
-                    <span data-icon="minus"></span>Speed
-                </button>
-                <button class="btn" type="button" data-nudge="speed:1">
-                    <span data-icon="plus"></span>Speed
-                </button>
+                <div class="nudge-row">
+                    <button class="btn" type="button" data-nudge="speed:-1" data-coarse
+                        aria-label="Speed down by 1" title="Speed down by 1">
+                        <span data-icon="chevronsLeft"></span>
+                    </button>
+                    <button class="btn" type="button" data-nudge="speed:-1">
+                        <span data-icon="minus"></span>Speed
+                    </button>
+                    <button class="btn" type="button" data-nudge="speed:1">
+                        <span data-icon="plus"></span>Speed
+                    </button>
+                    <button class="btn" type="button" data-nudge="speed:1" data-coarse
+                        aria-label="Speed up by 1" title="Speed up by 1">
+                        <span data-icon="chevronsRight"></span>
+                    </button>
+                </div>
 
                 <button class="btn btn-wide" id="resetBtn" type="button">
                     <span data-icon="reset"></span>Reset to the top
                 </button>
             </div>
-            <p class="mode-note hold-hint">Hold + or &minus; to change in bigger steps.</p>
 
             <div class="setting">
                 <div class="setting-head">

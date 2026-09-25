@@ -208,7 +208,6 @@ async function connect(code) {
       // The last state may say it was playing, and a copy still scrolling
       // after the connection went would be describing nothing.
       stopMirror();
-      stopHold();
     }
     setStatus(status, message);
   });
@@ -414,9 +413,6 @@ function applyScript(message) {
 function applyEditingLock(open) {
   el("editingLock").classList.toggle("hidden", !open);
   document.body.classList.toggle("locked", open);
-  // A finger already holding + when the cover arrives would keep stepping
-  // underneath it.
-  if (open) stopHold();
 
   if (open && editing) {
     // Held rather than sent. Sending on their behalf would be deciding for
@@ -491,66 +487,16 @@ function applyEditRefused(reason) {
 
 /* ---- the + and - buttons ----
 
-   A tap is one fine step. Holding is what Shift with an arrow key is on the
-   prompter: coarse steps, repeating for as long as the finger stays down,
-   the way a held key repeats. There is no Shift on a phone, and a hold is the
-   gesture that already means "more of this". */
-
-// Long enough that an ordinary tap never becomes a hold, short enough that a
-// hold does not feel ignored.
-const HOLD_DELAY_MS = 400;
-// Slow enough to stop on the value wanted, since each step is a coarse one.
-const HOLD_REPEAT_MS = 200;
-
-let holdTimer = null;
-
-function stopHold() {
-  clearTimeout(holdTimer);
-  clearInterval(holdTimer);
-  holdTimer = null;
-}
+   The inner pair is a fine step and the outer pair, the << and >>, a coarse
+   one: the same two sizes as an arrow key and Shift with an arrow key on the
+   prompter, which a phone has no Shift for. */
 
 function wireNudge(btn) {
   const [setting, value] = btn.dataset.nudge.split(":");
-  const nudge = (coarse) =>
+  const coarse = btn.hasAttribute("data-coarse");
+  btn.addEventListener("click", () => {
     send({ type: "command", name: "nudge", setting, value: Number(value), coarse });
-
-  // Set once a hold has stepped, so the click that follows the release does
-  // not add a fine step on top.
-  let held = false;
-
-  btn.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    held = false;
-    stopHold();
-    // Kept on this button while the finger is down, so drifting a few pixels
-    // off its edge does not end the hold.
-    btn.setPointerCapture?.(e.pointerId);
-    holdTimer = setTimeout(() => {
-      held = true;
-      nudge(true);
-      holdTimer = setInterval(() => nudge(true), HOLD_REPEAT_MS);
-    }, HOLD_DELAY_MS);
   });
-
-  ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
-    btn.addEventListener(type, stopHold);
-  });
-
-  // Taps, and Enter or Space on a focused button, both arrive here.
-  // A keyboard click has detail 0 and is never the end of a hold, even if a
-  // hold that ended off the button left the flag set.
-  btn.addEventListener("click", (e) => {
-    if (held && e.detail !== 0) {
-      held = false;
-      return;
-    }
-    nudge(false);
-  });
-
-  // A long press on a phone otherwise opens the context menu or a callout
-  // over the button, which also cancels the pointer and ends the hold.
-  btn.addEventListener("contextmenu", (e) => e.preventDefault());
 }
 
 /* ---- wiring ---- */

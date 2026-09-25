@@ -702,14 +702,20 @@ kbd {
 .remote-controls .btn { padding: 14px; font-size: 0.9rem; }
 .remote-controls .btn-wide { grid-column: 1 / -1; }
 
-/* Held to step repeatedly. Without these a long press on a phone opens the
-   callout menu or starts a double-tap zoom instead. */
-[data-nudge] {
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
+/* One setting's four steps across the full width: the big steps on the
+   outside, narrower, and the fine ones in the middle. */
+.nudge-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 2fr 2fr 1fr;
+  gap: 8px;
 }
+.nudge-row .btn { min-width: 0; }
+.nudge-row .btn[data-coarse] { padding-left: 6px; padding-right: 6px; }
 
-.hold-hint { margin: 0; text-align: center; }
+/* Tapped in quick succession, which a phone would otherwise read as a
+   double tap and zoom the page. */
+[data-nudge] { touch-action: manipulation; }
 
 /* The remote's copy of the prompter screen.
 
