@@ -702,6 +702,15 @@ kbd {
 .remote-controls .btn { padding: 14px; font-size: 0.9rem; }
 .remote-controls .btn-wide { grid-column: 1 / -1; }
 
+/* Held to step repeatedly. Without these a long press on a phone opens the
+   callout menu or starts a double-tap zoom instead. */
+[data-nudge] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+.hold-hint { margin: 0; text-align: center; }
+
 /* The remote's copy of the prompter screen.
 
    The screen is laid out at the prompter's own size, with its font size,
