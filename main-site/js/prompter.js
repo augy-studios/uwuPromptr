@@ -152,11 +152,22 @@ export class Prompter {
     this.playing ? this.pause() : this.play();
   }
 
-  reset() {
+  // Back to the top, paused, with the clock left alone. What a new or changed
+  // script gets: the position no longer refers to the same words, but the time
+  // spent so far is still the time spent, and only reset() clears it.
+  stop() {
     this.pause();
     this.rewind();
-    this.elapsed = 0;
     this.onChange(this.state());
+  }
+
+  // The reset button, and nothing else: the one thing that zeroes the clock.
+  // Paused before zeroing, because pausing banks the running time into
+  // elapsed and would put it straight back.
+  reset() {
+    this.pause();
+    this.elapsed = 0;
+    this.stop();
   }
 
   rewind() {

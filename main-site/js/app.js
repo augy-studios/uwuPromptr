@@ -142,7 +142,9 @@ function loadActiveScript() {
   const script = getActiveScript();
   el("scriptText").textContent = script.body;
   el("currentScriptName").textContent = script.name;
-  prompter?.reset();
+  // Rewound but not reset: the clock only goes back to zero from the reset
+  // button, never because the script was switched or edited.
+  prompter?.stop();
   broadcastScript();
 }
 
@@ -997,7 +999,7 @@ function applyRemoteEdit(message) {
     el("editorBody").value = body;
   }
 
-  // loadActiveScript resets the prompter to the top, which is right: the text
+  // loadActiveScript rewinds the prompter to the top, which is right: the text
   // under the reader just changed, so the position they were at no longer
   // refers to the same words.
   loadActiveScript();
