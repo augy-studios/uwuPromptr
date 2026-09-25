@@ -912,7 +912,15 @@ function handleRemoteMessage(message) {
 }
 
 function broadcastState(state) {
-  host?.send({ type: "state", payload: state });
+  if (!host) return;
+  // The colours this screen is in, so the remote's copy of it matches this
+  // device rather than whatever theme the phone happens to be set to.
+  const theme = COLOR_THEMES.find((t) => t.id === getStoredColorTheme()) || COLOR_THEMES[0];
+  const look = {
+    mode: document.documentElement.getAttribute("data-mode") === "dark" ? "dark" : "light",
+    brand: theme.hex,
+  };
+  host.send({ type: "state", payload: { ...state, look } });
 }
 
 /* The revision counter behind the `edit` message. It counts changes made on

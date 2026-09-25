@@ -702,19 +702,81 @@ kbd {
 .remote-controls .btn { padding: 14px; font-size: 0.9rem; }
 .remote-controls .btn-wide { grid-column: 1 / -1; }
 
-.remote-preview {
-  max-height: 34vh;
-  overflow-y: auto;
-  padding: 12px;
+/* The remote's copy of the prompter screen.
+
+   The screen is laid out at the prompter's own size, with its font size,
+   line height and margins, and then scaled down as a whole. That is what makes
+   it wrap on the same words: scaling the font alone would reflow the text into
+   a narrower box and break every line somewhere else.
+
+   Its colours come from the prompter, not from this page's theme, set as
+   data-mode and --mirror-brand by remote-page.js. */
+.mirror {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  margin: 0 auto;
+  overflow: hidden;
   border-radius: 14px;
-  background: var(--surface);
-  border: 1px solid var(--surface-border);
+  /* A shadow rather than a border, which would take a pixel off each side of
+     the box the screen is scaled to fit. */
+  box-shadow: 0 0 0 1px var(--surface-border);
+  background: #0c100e;
+  color: var(--mirror-brand, var(--brand));
+}
+.mirror[data-mode="light"] { background: var(--mirror-brand, var(--brand)); color: #121815; }
+.mirror[data-mode="dark"] { background: #0c100e; color: var(--mirror-brand, var(--brand)); }
+
+.mirror-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  transform-origin: 0 0;
+}
+.mirror-scroll { will-change: transform; }
+.mirror-text {
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  font-size: 0.9rem;
-  color: var(--muted-strong);
-  line-height: 1.5;
+  text-align: center;
+  transform-origin: center center;
 }
+
+/* The focus arrows, drawn the way the stage draws them. They scale with the
+   screen, down to a floor, because at a phone's scale the real size would be a
+   few pixels and read as nothing. */
+.mirror.show-focus::before,
+.mirror.show-focus::after {
+  --arrow-w: max(6px, calc(16px * var(--mirror-scale, 1)));
+  --arrow-h: max(5px, calc(12px * var(--mirror-scale, 1)));
+  content: "";
+  position: absolute;
+  top: var(--focus-position, 40%);
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: var(--arrow-h) solid transparent;
+  border-bottom: var(--arrow-h) solid transparent;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.55;
+}
+.mirror.show-focus::before { left: 0; border-left: var(--arrow-w) solid currentColor; }
+.mirror.show-focus::after { right: 0; border-right: var(--arrow-w) solid currentColor; }
+
+/* The prompter's clock, where its transport bar puts it. */
+.mirror-timer {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.mirror-timer.hidden { display: none; }
 
 .remote-page .timer {
   margin: 0;

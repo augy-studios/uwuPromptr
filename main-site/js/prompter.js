@@ -103,6 +103,22 @@ export class Prompter {
       playing: this.playing,
       elapsed: this.elapsedMs(),
       progress: this.progress(),
+      view: this.view(),
+    };
+  }
+
+  // The screen's geometry, which is what the remote needs to draw a copy of it
+  // that wraps on the same words. Padding is read rather than assumed because
+  // it is in vh, the window's height, not the viewport's.
+  view() {
+    const style = getComputedStyle(this.text);
+    return {
+      width: this.viewport.clientWidth,
+      height: this.viewport.clientHeight,
+      scrollTop: this.viewport.scrollTop,
+      scrollHeight: this.viewport.scrollHeight,
+      padTop: parseFloat(style.paddingTop) || 0,
+      padBottom: parseFloat(style.paddingBottom) || 0,
     };
   }
 
@@ -176,10 +192,7 @@ export class Prompter {
     // tab was idle.
     if (this.lastFrame) {
       const delta = (now - this.lastFrame) / 1000;
-      // Speed is lines-per-minute-ish: pixels per second scale with the
-      // font size, so raising the font does not silently slow the read.
-      const pixelsPerSecond = (this.settings.speed * this.settings.fontSize) / 12;
-      this.offset += pixelsPerSecond * delta;
+      this.offset += pixelsPerSecond(this.settings) * delta;
       this.viewport.scrollTop = this.offset;
 
       if (this.atEnd()) {
@@ -220,6 +233,13 @@ export class Prompter {
     this.wakeLock.release().catch(() => {});
     this.wakeLock = null;
   }
+}
+
+// Speed is lines-per-minute-ish: pixels per second scale with the font size,
+// so raising the font does not silently slow the read. Shared with the remote,
+// which carries its copy of the screen forward between updates at this rate.
+export function pixelsPerSecond({ speed, fontSize }) {
+  return (speed * fontSize) / 12;
 }
 
 export function formatElapsed(ms) {

@@ -12,7 +12,7 @@ import {
   initTheme,
 } from "./theme.js";
 import { hydrateIcons, openModal, closeModal } from "./ui.js";
-import { formatElapsed } from "./prompter.js";
+import { formatElapsed, pixelsPerSecond } from "./prompter.js";
 import { RemoteClient, isValidCode, normaliseCode, CODE_LENGTH } from "./remote.js";
 import { initUpdateBar } from "./sw-update.js";
 
@@ -203,7 +203,12 @@ async function connect(code) {
     // Anything other than a live connection clears the cover. It describes the
     // far end's editor being open, and a connection that has dropped cannot
     // tell us it closed, so holding the cover would strand this page behind it.
-    if (status !== "connected") applyEditingLock(false);
+    if (status !== "connected") {
+      applyEditingLock(false);
+      // The last state may say it was playing, and a copy still scrolling
+      // after the connection went would be describing nothing.
+      stopMirror();
+    }
     setStatus(status, message);
   });
   client.addEventListener("message", (e) => {
@@ -232,20 +237,119 @@ function send(message) {
 
 /* ---- mirroring what the prompter shows ---- */
 
+// When lastState arrived. The prompter sends state twice a second, and a copy
+// of its screen that only moved then would step rather than scroll, so the
+// scroll and the clock are carried forward from this between updates.
+let lastStateAt = 0;
+
 function applyState(state) {
   lastState = state;
+  lastStateAt = performance.now();
 
   const playIcon = document.querySelector("#playBtn [data-icon]");
   playIcon.setAttribute("data-icon", state.playing ? "pause" : "play");
   el("playLabel").textContent = state.playing ? "Pause" : "Play";
   hydrateIcons(el("playBtn"));
 
-  el("timer").textContent = formatElapsed(state.elapsed);
   el("fontValue").textContent = state.fontSize;
   el("speedValue").textContent = Number(state.speed).toFixed(1);
 
   const scrub = el("scrub");
   if (document.activeElement !== scrub) scrub.value = state.progress;
+
+  layoutMirror(state);
+  stopMirror();
+  drawMirror();
+}
+
+/* ---- the prompter's screen, in miniature ----
+
+   Laid out at the prompter's own size and settings, then scaled down whole,
+   so it wraps on the same words and the focus arrows point at the same line.
+   Scaling only the font would reflow the text into a narrower box and break
+   every line somewhere else. */
+
+// How much of this page's height the copy may take. A prompter in portrait
+// would otherwise push the controls off the bottom of a phone.
+const MIRROR_MAX_HEIGHT = 0.45;
+
+let mirrorFrame = null;
+
+function layoutMirror(state) {
+  const view = state?.view;
+  const room = el("previewBlock").clientWidth;
+  // No geometry from an older prompter, or the block is hidden behind the
+  // editor and has no width to fit to. It is laid out again when it returns.
+  if (!view?.width || !view?.height || !room) return;
+
+  const scale = Math.min(
+    room / view.width,
+    (window.innerHeight * MIRROR_MAX_HEIGHT) / view.height
+  );
+
+  const mirror = el("preview");
+  mirror.style.width = `${view.width * scale}px`;
+  mirror.style.height = `${view.height * scale}px`;
+  mirror.style.setProperty("--mirror-scale", String(scale));
+  mirror.style.setProperty("--focus-position", `${state.focusPosition}%`);
+  mirror.classList.toggle("show-focus", Boolean(state.focusLine));
+  if (state.look) {
+    mirror.dataset.mode = state.look.mode;
+    mirror.style.setProperty("--mirror-brand", state.look.brand);
+  }
+
+  const screen = el("mirrorScreen").style;
+  screen.width = `${view.width}px`;
+  screen.height = `${view.height}px`;
+  screen.transform = `scale(${scale})`;
+
+  // The same rules Prompter.apply writes onto the real text.
+  const text = el("mirrorText").style;
+  text.fontSize = `${state.fontSize}px`;
+  text.lineHeight = String(state.lineHeight);
+  text.paddingLeft = `${state.margin}%`;
+  text.paddingRight = `${state.margin}%`;
+  text.paddingTop = `${view.padTop}px`;
+  text.paddingBottom = `${view.padBottom}px`;
+  const scaleX = state.flipX ? -1 : 1;
+  const scaleY = state.flipY ? -1 : 1;
+  text.transform = scaleX === 1 && scaleY === 1 ? "" : `scale(${scaleX}, ${scaleY})`;
+
+  el("mirrorTimer").classList.toggle("hidden", !state.timer);
+}
+
+function relayoutMirror() {
+  if (lastState) layoutMirror(lastState);
+}
+
+function drawMirror() {
+  mirrorFrame = null;
+  const state = lastState;
+  if (!state) return;
+
+  const since = state.playing ? performance.now() - lastStateAt : 0;
+
+  const view = state.view;
+  if (view) {
+    // Carried forward at the prompter's own rate, and stopped where it stops:
+    // the end of the script.
+    const max = Math.max(0, view.scrollHeight - view.height);
+    const top = Math.min(max, view.scrollTop + (pixelsPerSecond(state) * since) / 1000);
+    el("mirrorScroll").style.transform = `translateY(${-top}px)`;
+  }
+
+  const clock = formatElapsed(state.elapsed + since);
+  if (el("timer").textContent !== clock) {
+    el("timer").textContent = clock;
+    el("mirrorTimer").textContent = clock;
+  }
+
+  if (state.playing) mirrorFrame = requestAnimationFrame(drawMirror);
+}
+
+function stopMirror() {
+  if (mirrorFrame) cancelAnimationFrame(mirrorFrame);
+  mirrorFrame = null;
 }
 
 /* What the prompter last told us the script is, and which revision that was.
@@ -266,6 +370,9 @@ let reopenOnNextScript = false;
 function applyScript(message) {
   scriptRev = Number(message.rev) || 0;
   el("scriptName").textContent = message.name;
+  // Always, even mid-edit: it is a copy of the prompter's screen, and the
+  // screen has changed whether or not anybody here is typing.
+  el("mirrorText").textContent = message.body;
 
   // Somebody is typing here. Overwriting the field would delete the sentence
   // they are half way through, which is exactly what the rev check exists to
@@ -281,7 +388,6 @@ function applyScript(message) {
 
   el("editName").value = message.name;
   el("editBody").value = message.body;
-  el("preview").textContent = message.body;
   el("editStale").hidden = true;
 
   if (reopenOnNextScript) {
@@ -326,6 +432,7 @@ function openRemoteEditor({ keepNotice = false } = {}) {
   // after a refusal, where the two genuinely differ and the difference is the
   // point.
   el("previewBlock").hidden = !keepNotice;
+  relayoutMirror();
   el("editBody").focus();
 }
 
@@ -335,6 +442,7 @@ function closeRemoteEditor() {
   el("editRefused").hidden = true;
   el("editPanel").hidden = true;
   el("previewBlock").hidden = false;
+  relayoutMirror();
 }
 
 /* What was sent, kept until the prompter either applies it or refuses it. A
@@ -468,6 +576,8 @@ function boot() {
   wireModals();
   wireControls();
   setStatus("idle");
+  // Turning the phone round changes the room the copy of the screen has.
+  window.addEventListener("resize", relayoutMirror);
 
   // A code in the link, the way the QR on the prompter hands it over, means
   // the phone connects without anybody typing anything.

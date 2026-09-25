@@ -140,7 +140,16 @@
                         <span data-icon="edit"></span>Edit
                     </button>
                 </div>
-                <div class="remote-preview" id="preview"></div>
+                <!-- A scaled copy of the prompter's screen: its text, colours,
+                     focus arrows and clock, scrolled to where it is. -->
+                <div class="mirror" id="preview">
+                    <div class="mirror-screen" id="mirrorScreen">
+                        <div class="mirror-scroll" id="mirrorScroll">
+                            <div class="mirror-text" id="mirrorText"></div>
+                        </div>
+                    </div>
+                    <div class="mirror-timer" id="mirrorTimer" aria-hidden="true">00:00:00</div>
+                </div>
             </div>
 
             <section class="edit-panel" id="editPanel" hidden aria-label="Edit the script">
