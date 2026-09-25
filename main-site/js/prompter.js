@@ -139,8 +139,11 @@ export class Prompter {
   pause() {
     if (!this.playing) return;
 
-    this.playing = false;
+    // Banked before playing goes false: elapsedMs() only counts the running
+    // span while playing, so the other order threw away every second since
+    // Play and a pause, or reaching the end, put the clock back to zero.
     this.elapsed = this.elapsedMs();
+    this.playing = false;
     this.startedAt = 0;
     if (this.frame) cancelAnimationFrame(this.frame);
     this.frame = null;
