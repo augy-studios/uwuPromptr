@@ -237,7 +237,7 @@ function send(message) {
 
 /* ---- mirroring what the prompter shows ---- */
 
-// When lastState arrived. The prompter sends state twice a second, and a copy
+// When lastState arrived. The prompter sends state 20 times a second, and a copy
 // of its screen that only moved then would step rather than scroll, so the
 // scroll and the clock are carried forward from this between updates.
 let lastStateAt = 0;

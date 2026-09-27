@@ -35,6 +35,10 @@ let stoppedByHand = false;
 
 const el = (id) => document.getElementById(id);
 
+// How often the prompter sends its state to the remote while hosting: 20 a
+// second, the tick rate Minecraft runs at. It is also the heartbeat.
+const STATE_INTERVAL_MS = 50;
+
 /* ---- theme modal (uwuapps-theme.md section 6) ---- */
 
 function buildThemeModal() {
@@ -1080,13 +1084,15 @@ function boot() {
   loadActiveScript();
   syncToolbar(prompter.state());
 
-  // The clock, and the progress the remote shows. One interval rather than
-  // a repaint per animation frame: the timer only changes once a second.
+  // The clock, and the progress the remote shows, at 20 updates a second:
+  // over a local link that is a trivial load, and it keeps the remote's
+  // scrubber moving instead of stepping. One interval rather than a repaint
+  // per animation frame, since nothing here needs to be faster than this.
   setInterval(() => {
     const state = prompter.state();
     el("timer").textContent = formatElapsed(state.elapsed);
     if (host) broadcastState(state);
-  }, 500);
+  }, STATE_INTERVAL_MS);
 
   initUpdateBar();
 }
