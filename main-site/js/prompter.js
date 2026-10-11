@@ -27,6 +27,11 @@ export class Prompter {
     this.elapsed = 0;
     this.startedAt = 0;
     this.wakeLock = null;
+    // Set while a remote is paired. The screen then stays on whether or not
+    // the text is moving, because the person holding the remote may be
+    // sitting on a pause and still reading off this screen.
+    this.keepAwake = false;
+    this.wakeLockPending = false;
 
     this.tick = this.tick.bind(this);
 
@@ -35,6 +40,14 @@ export class Prompter {
     this.viewport.addEventListener("scroll", () => {
       if (!this.playing) this.offset = this.viewport.scrollTop;
     }, { passive: true });
+
+    // The browser drops a wake lock whenever the page is hidden, and does not
+    // give it back. Ask again on return if anything still wants it.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && this.wantsWakeLock()) {
+        this.requestWakeLock();
+      }
+    });
 
     this.apply();
   }
@@ -147,7 +160,7 @@ export class Prompter {
     this.startedAt = 0;
     if (this.frame) cancelAnimationFrame(this.frame);
     this.frame = null;
-    this.releaseWakeLock();
+    if (!this.keepAwake) this.releaseWakeLock();
     this.onChange(this.state());
   }
 
@@ -231,15 +244,37 @@ export class Prompter {
   // Nobody wants the screen to sleep mid-take. Unsupported browsers and a
   // refused request are both fine: the prompter carries on either way.
   async requestWakeLock() {
-    if (!("wakeLock" in navigator) || this.wakeLock) return;
+    if (!("wakeLock" in navigator) || this.wakeLock || this.wakeLockPending) return;
+    if (document.visibilityState !== "visible") return;
+    this.wakeLockPending = true;
     try {
-      this.wakeLock = await navigator.wakeLock.request("screen");
-      this.wakeLock.addEventListener("release", () => {
-        this.wakeLock = null;
+      const lock = await navigator.wakeLock.request("screen");
+      // Nothing wants it any more by the time it arrived: a pause, or the
+      // remote dropping, while the request was in flight.
+      if (!this.wantsWakeLock()) {
+        lock.release().catch(() => {});
+        return;
+      }
+      this.wakeLock = lock;
+      lock.addEventListener("release", () => {
+        if (this.wakeLock === lock) this.wakeLock = null;
       });
     } catch {
       this.wakeLock = null;
+    } finally {
+      this.wakeLockPending = false;
     }
+  }
+
+  wantsWakeLock() {
+    return this.playing || this.keepAwake;
+  }
+
+  // Hold the screen on for as long as a remote is paired, playing or not.
+  setKeepAwake(on) {
+    this.keepAwake = Boolean(on);
+    if (this.wantsWakeLock()) this.requestWakeLock();
+    else this.releaseWakeLock();
   }
 
   releaseWakeLock() {
