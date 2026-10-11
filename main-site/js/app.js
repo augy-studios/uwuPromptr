@@ -650,6 +650,10 @@ function remoteUrl(code) {
 }
 
 function setRemoteStatus(status, message) {
+  // A paired prompter is being driven from across the room, often while
+  // paused, so its screen should not time out until the remote lets go.
+  prompter?.setKeepAwake(status === "connected");
+
   const dot = el("remoteDot");
   const text = el("remoteStatusText");
   if (!dot || !text) {
