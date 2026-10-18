@@ -1,0 +1,62 @@
+apply plugin: 'com.android.application'
+
+// uwuPromptr for Wear OS: the prompter's remote on your wrist, through the phone's app
+// (wear/README.md). Built alongside the phone's app by android/build-apk.ps1, into
+// release/<version>/ as uwupromptr-<version>-watch.apk.
+//
+// The same application id and signing key as the phone's, which the Wearable Data Layer
+// needs to pair the two, and the same version, read from the phone's build.gradle so it's
+// only ever raised there.
+def phoneGradle = file('../app/build.gradle').text
+def phoneVersionCode = (phoneGradle =~ /versionCode (\d+)/)[0][1] as int
+def phoneVersionName = (phoneGradle =~ /versionName "([^"]+)"/)[0][1]
+
+android {
+    namespace = "org.uwuapps.cue.wear"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "org.uwuapps.cue"
+        // Wear OS 3, the first with tiles from other apps.
+        minSdkVersion 30
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode phoneVersionCode
+        versionName phoneVersionName
+    }
+    // The phone's key: android/keystore.properties and android/android.keystore.
+    def keystoreProps = new Properties()
+    def keystoreFile = rootProject.file('../keystore.properties')
+    if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+    signingConfigs {
+        release {
+            if (keystoreProps.storeFile) {
+                storeFile rootProject.file("../${keystoreProps.storeFile}")
+                storePassword keystoreProps.storePassword
+                keyAlias keystoreProps.keyAlias
+                keyPassword keystoreProps.keyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystoreProps.storeFile) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
+    }
+}
+
+dependencies {
+    implementation "androidx.core:core:$androidxCoreVersion"
+    // A lifecycle owner, for the ambient observer.
+    implementation "androidx.activity:activity:$androidxActivityVersion"
+    implementation "androidx.wear:wear:$wearVersion"
+    implementation "androidx.wear:wear-remote-interactions:$wearRemoteInteractionsVersion"
+    implementation "androidx.wear.tiles:tiles:$wearTilesVersion"
+    implementation "androidx.wear.protolayout:protolayout:$protolayoutVersion"
+    implementation "androidx.wear.protolayout:protolayout-expression:$protolayoutVersion"
+    implementation "androidx.concurrent:concurrent-futures:$concurrentFuturesVersion"
+    implementation "com.google.android.gms:play-services-wearable:$playServicesWearableVersion"
+}

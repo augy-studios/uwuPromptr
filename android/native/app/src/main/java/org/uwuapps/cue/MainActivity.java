@@ -168,6 +168,7 @@ public class MainActivity extends BridgeActivity {
         intent.putExtra(HANDLED, true);
 
         String url = pageFor(uri);
+        if (url == null) return;
         if (bridge != null && bridge.getWebView() != null) {
             bridge.getWebView().post(() -> bridge.getWebView().loadUrl(url));
         }
@@ -176,7 +177,9 @@ public class MainActivity extends BridgeActivity {
     /**
      * The page on the site a link stands for. Only the two pages the site has,
      * and a remote id only when it is a valid one; anything else is the
-     * prompter.
+     * prompter. Null for uwu://cue/watch, which only brings the app to the
+     * front: the watch's Open on phone, which mustn't move a phone that is on
+     * the remote page off it.
      */
     static String pageFor(Uri uri) {
         String path = uri.getPath() == null ? "" : uri.getPath();
@@ -185,6 +188,8 @@ public class MainActivity extends BridgeActivity {
             path = "/" + path.replaceFirst("^/+", "");
         }
         path = path.replaceFirst("\\.html$", "").replaceFirst("/+$", "");
+
+        if ("uwu".equals(uri.getScheme()) && path.equals("/watch")) return null;
 
         if (path.equals("/remote")) {
             String id = uri.getQueryParameter("id");

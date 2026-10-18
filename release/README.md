@@ -1,17 +1,20 @@
 # Releases
 
-Each Android build lives here, committed, one folder per version:
+Each Android build lives here, committed, one folder per version: the phone's APK and, from
+1.1.0, the Wear OS watch's beside it.
 
 ```text
 release/
   1.0.0/uwupromptr-1.0.0.apk
   1.1.0/uwupromptr-1.1.0.apk
+  1.1.0/uwupromptr-1.1.0-watch.apk
 ```
 
-`android\build-apk.ps1` puts each build in its folder (see `android/README.md`). The desktop
-installers are built by GitHub Actions and live only on the GitHub release: at 80 to 110 MB
-each, GitHub refuses them in git, and the root `.gitignore` keeps them out of here. This file
-is how to publish a version of both.
+`android\build-apk.ps1` builds both into their folder (see `android/README.md`). Only the APKs
+and this README are tracked here: the root `.gitignore` ignores everything else under
+`release/`. The desktop installers are built by GitHub Actions and live only on the GitHub
+release, as at 80 to 110 MB each GitHub refuses them in git. This file is how to publish a
+version of all of them.
 
 ## Publishing a version
 
@@ -23,9 +26,10 @@ The Android app and the desktop apps share a version number and one GitHub relea
      version. A phone only accepts a higher `versionCode`.
    - `desktop/package.json`: `version` to the same, then `npm install` in `desktop/` so
      `package-lock.json` follows.
-2. **Build the APK**: `powershell -ExecutionPolicy Bypass -File android\build-apk.ps1`.
+2. **Build the APKs**: `powershell -ExecutionPolicy Bypass -File android\build-apk.ps1`. One
+   command makes both, the phone's and the watch's.
 3. **Deploy the site first** if this release needs anything new from it, then **commit the
-   code and the APK together** and push. The push builds the desktop apps as a check (the
+   code and both APKs together** and push. The push builds the desktop apps as a check (the
    **Actions** tab, **Build desktop apps**), without releasing anything.
 4. **Make the release, with the desktop installers**: **Actions** > **Build desktop apps** >
    **Run workflow**, with the tag `android-v<version>` (for example `android-v1.0.0`). It
@@ -33,9 +37,10 @@ The Android app and the desktop apps share a version number and one GitHub relea
    that tag. Nobody's app sees a draft, so nothing updates yet.
 5. On GitHub: **Releases** > the draft > **Edit**.
    - **Release title**: `uwuPromptr <version>`.
-   - **Attach the APK** from `release/<version>/` and **wait for it to finish uploading
+   - **Attach both APKs** from `release/<version>/` and **wait for them to finish uploading
      before publishing**. The "new version" notification goes out on publish, and only for a
-     release whose APK is there.
+     release whose APK is there. Phones are only ever offered the phone's: the updater skips
+     the `-watch.apk`.
    - Check the desktop files are all there: two `.exe`/`.msi`, two `.dmg` and two `.zip`, the
      `.deb`, the `.AppImage`, the `.blockmap`s, and `latest.yml`, `latest-mac.yml`,
      `latest-linux.yml`. Without the `.yml` files no desktop app sees the version.
@@ -49,6 +54,11 @@ The Android app and the desktop apps share a version number and one GitHub relea
 
 Publishing a release by hand without step 4 works too: the workflow sees the release and adds
 the desktop installers a few minutes later.
+
+Watches don't update themselves: somebody with the watch app installs the new
+`-watch.apk` over it, as in `android/native/wear/README.md`. Say so in the release notes'
+**Updating** section whenever the watch app changes, with a Download row like
+`| Wear OS 3 or newer watch | uwupromptr-<version>-watch.apk |`.
 
 Things that stop the update reaching phones: a tag without `android-v`, a draft or
 pre-release, the APK still uploading, a `versionCode` not raised, or the repository made

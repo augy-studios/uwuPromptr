@@ -80,16 +80,24 @@ public class CuePlugin extends Plugin {
     private static volatile CuePlugin instance;
 
     private NearbyLink nearby;
+    private WatchLink watch;
 
     @Override
     public void load() {
         instance = this;
+        // The Wear OS watch app talks through Play services' Wearable API.
+        if (playServices()) {
+            watch = new WatchLink(getContext(), this::watchMessage);
+            watch.start();
+        }
     }
 
     @Override
     protected void handleOnDestroy() {
         if (nearby != null) nearby.stop();
         nearby = null;
+        if (watch != null) watch.stop();
+        watch = null;
         if (instance == this) instance = null;
         MainActivity.keysToPage = false;
     }
@@ -121,6 +129,7 @@ public class CuePlugin extends Plugin {
         // ever arrive.
         if (!FirebaseApp.getApps(context).isEmpty()) features.put("push");
         if (playServices()) features.put("nearby");
+        if (watch != null) features.put("watch");
         result.put("features", features);
         call.resolve(result);
     }
@@ -260,6 +269,23 @@ public class CuePlugin extends Plugin {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
         call.resolve();
+    }
+
+    /* ---- the Wear OS watch ---- */
+
+    /** The prompter's state, to the watch. The page sends it only while a watch listens. */
+    @PluginMethod
+    public void watchSend(PluginCall call) {
+        String data = call.getString("data");
+        if (watch != null && data != null && data.length() <= WatchLink.MAX_BYTES) watch.send(data);
+        call.resolve();
+    }
+
+    /** A message from the watch, to the page as it came (js/watch.js reads it). */
+    private void watchMessage(String data) {
+        JSObject event = new JSObject();
+        event.put("data", data);
+        notifyListeners("watch", event);
     }
 
     /* ---- the offline remote: Nearby Connections ---- */

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">uwuPromptr</string>
+    <string name="tile_name">Prompter remote</string>
+    <string name="tile_description">Play, pause and restart the script on your phone, with the clock and the speed.</string>
+</resources>

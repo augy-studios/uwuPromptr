@@ -30,6 +30,7 @@ import { initAppFeatures, toggleImmersive } from "./app-native.js";
 import { initAppUpdates } from "./app-update.js";
 import { initDesktopFeatures } from "./app-desktop.js";
 import { NearbyHost, nearbyAvailable } from "./nearby.js";
+import { initWatch, updateWatch, watchAttached } from "./watch.js";
 
 let prompter = null;
 let host = null;
@@ -375,6 +376,7 @@ function syncToolbar(state) {
 
   syncSettingsModal(state);
   broadcastState(state);
+  updateWatch();
 }
 
 // How many decimals a setting shows. Speed reads as 12.0 and line height as
@@ -695,10 +697,18 @@ function remoteUrl(code) {
   return `${location.origin}/remote?id=${code}`;
 }
 
+// A paired prompter is being driven from across the room, often while paused,
+// so its screen should not time out until the remote lets go. A watch on the
+// speaker's wrist counts too: the phone it drives is this one.
+let remoteConnected = false;
+
+function syncKeepAwake() {
+  prompter?.setKeepAwake(remoteConnected || watchAttached());
+}
+
 function setRemoteStatus(status, message) {
-  // A paired prompter is being driven from across the room, often while
-  // paused, so its screen should not time out until the remote lets go.
-  prompter?.setKeepAwake(status === "connected");
+  remoteConnected = status === "connected";
+  syncKeepAwake();
 
   const dot = el("remoteDot");
   const text = el("remoteStatusText");
@@ -1248,6 +1258,28 @@ function boot() {
     prompterWantsAwake: () => prompter.wantsWakeLock(),
   });
   initAppUpdates();
+
+  // The Wear OS watch app, through the Android app: one more remote, for this
+  // prompter, with no code to type.
+  initWatch({
+    summary: () => {
+      const state = prompter.state();
+      return {
+        live: true,
+        role: "prompter",
+        playing: state.playing,
+        speed: state.speed,
+        elapsed: state.elapsed,
+        progress: state.progress,
+        name: getActiveScript().name,
+      };
+    },
+    onCommand: handleRemoteMessage,
+    onAttached: (on) => {
+      syncKeepAwake();
+      if (on) toast("Your watch is connected");
+    },
+  });
 
   // The desktop app's extras, which answer at once: window.cueDesktop is there
   // before this page's scripts run. Nothing here in a browser either.

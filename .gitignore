@@ -24,15 +24,22 @@ google-services.json
 *firebase-adminsdk*.json
 *-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
 
-# The desktop installers. desktop/build-linux.sh copies them into
-# release/<version>/ beside the APK, but at 80 to 110 MB each GitHub refuses
-# them: they live only on the GitHub release.
+# release/ keeps only the APKs (the phone's and the watch's) and its README.
+# Everything else that lands there is ignored: the desktop installers that
+# desktop/build-linux.sh copies in, at 80 to 110 MB each too big for GitHub,
+# their latest*.yml and .blockmap files, and anything else a tool leaves. Those
+# live only on the GitHub release.
+release/**
+!release/*/
+!release/README.md
+!release/*/*.apk
+
+# The desktop installers, wherever else a build leaves them.
 *.deb
 *.AppImage
 *.msi
 *.dmg
 *-setup.exe
-release/**/latest*.yml
 
 # Editor and OS leavings.
 .DS_Store

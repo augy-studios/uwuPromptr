@@ -19,6 +19,7 @@ import { AppBridge } from "./app-bridge.js";
 import { NearbyClient, nearbyAvailable } from "./nearby.js";
 import { resetAppFeatures } from "./app-native.js";
 import { initAppUpdates } from "./app-update.js";
+import { initWatch, updateWatch } from "./watch.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -191,6 +192,7 @@ function setStatus(status, message) {
     el("connectBtn").textContent = "Connect";
   }
   wasLive = live;
+  updateWatch();
 }
 
 /**
@@ -269,6 +271,7 @@ function applyState(state) {
   layoutMirror(state);
   stopMirror();
   drawMirror();
+  updateWatch();
 }
 
 /* ---- the prompter's screen, in miniature ----
@@ -632,6 +635,27 @@ function boot() {
   // still connect to one nearby.
   resetAppFeatures();
   initAppUpdates();
+
+  // The Wear OS watch app, through the Android app: it drives whichever
+  // prompter this remote is connected to, and says so when it isn't.
+  initWatch({
+    summary: () => {
+      const live = client?.status === "connected" && Boolean(lastState);
+      const since = live && lastState.playing ? performance.now() - lastStateAt : 0;
+      return {
+        live,
+        role: "remote",
+        playing: live && Boolean(lastState.playing),
+        speed: lastState?.speed ?? 0,
+        elapsed: (lastState?.elapsed ?? 0) + since,
+        progress: lastState?.progress ?? 0,
+        name: el("scriptName").textContent,
+      };
+    },
+    onCommand: (command) => {
+      if (client?.status === "connected") send(command);
+    },
+  });
   AppBridge.ready(5000).then(() => {
     const nearby = nearbyAvailable();
     el("nearbyConnectBtn").hidden = !nearby;

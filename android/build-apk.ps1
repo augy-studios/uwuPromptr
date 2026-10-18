@@ -1,4 +1,5 @@
-# Builds the signed uwuPromptr APK and puts it in release\<version>\.
+# Builds the signed uwuPromptr APKs, the phone's and the Wear OS watch's, and
+# puts them in release\<version>\.
 #
 #   powershell -ExecutionPolicy Bypass -File android\build-apk.ps1
 #
@@ -9,9 +10,12 @@
 #      main-site\.well-known\assetlinks.json. Every later run reuses it, and
 #      stops rather than make a second one if it has gone missing.
 #   3. npm ci if node_modules is missing, then npx cap sync android.
-#   4. gradlew assembleRelease.
-#   5. Checks the APK is signed with the key assetlinks.json names.
-#   6. Copies it to release\<versionName>\uwupromptr-<versionName>.apk.
+#   4. gradlew assembleRelease: the phone's app (native\app\) and the watch's
+#      (native\wear\), one key and one version for both.
+#   5. Checks both are signed with the key assetlinks.json names. The watch's
+#      must be, or the two can't talk.
+#   6. Copies them to release\<versionName>\ as uwupromptr-<versionName>.apk
+#      and uwupromptr-<versionName>-watch.apk.
 #
 # Written for Windows PowerShell 5.1: native tools are run so that their
 # stderr is not mistaken for a failure (only the exit code counts), files other
@@ -248,49 +252,68 @@ $gradle = Start-Process -FilePath (Join-Path $native 'gradlew.bat') `
     -WorkingDirectory $native -NoNewWindow -Wait -PassThru
 if ($gradle.ExitCode -ne 0) { Fail 'The Gradle build failed. The error is above.' }
 
-$outputs = Join-Path $native 'app\build\outputs\apk\release'
-$apk = Join-Path $outputs 'app-release.apk'
-if (-not (Test-Path $apk)) {
-    if (Test-Path (Join-Path $outputs 'app-release-unsigned.apk')) {
-        Fail 'Gradle made an unsigned APK: keystore.properties was not picked up.'
+# The phone's and the watch's, each from its module's release folder.
+function Get-Apk([string]$module, [string]$what) {
+    $outputs = Join-Path $native "$module\build\outputs\apk\release"
+    $apk = Join-Path $outputs "$module-release.apk"
+    if (-not (Test-Path $apk)) {
+        if (Test-Path (Join-Path $outputs "$module-release-unsigned.apk")) {
+            Fail "Gradle made an unsigned $what APK: keystore.properties was not picked up."
+        }
+        Fail "No $what APK at $apk."
     }
-    Fail "No APK at $apk."
+    return $apk
 }
+
+$apk = Get-Apk 'app' 'phone'
+$watchApk = Get-Apk 'wear' 'watch'
 
 # ---------------------------------------------------------------------------
-Step 'Checking the signature'
+Step 'Checking the signatures'
 
-$verify = Get-ToolOutput $apksigner @('verify', '--print-certs', $apk)
-if ($verify.Code -ne 0) { Fail "apksigner refused the APK:`n$($verify.Text)" }
-$match = [regex]::Match($verify.Text, 'certificate SHA-256 digest:\s*([0-9a-fA-F]{64})')
-if (-not $match.Success) { Fail "apksigner did not print the signer's SHA-256:`n$($verify.Text)" }
-$signed = $match.Groups[1].Value.ToUpper()
 $expected = (Get-AssetlinksFingerprint).Replace(':', '')
-if ($signed -ne $expected) {
-    Fail "The APK is signed with $signed, not the key in assetlinks.json ($expected)."
+
+# The phone's must be the key every installed copy has, or none can update; the
+# watch's must be the same, or the Wearable Data Layer won't let the two talk.
+function Test-Signed([string]$apk, [string]$what) {
+    $verify = Get-ToolOutput $apksigner @('verify', '--print-certs', $apk)
+    if ($verify.Code -ne 0) { Fail "apksigner refused the $what APK:`n$($verify.Text)" }
+    $match = [regex]::Match($verify.Text, 'certificate SHA-256 digest:\s*([0-9a-fA-F]{64})')
+    if (-not $match.Success) { Fail "apksigner did not print the $what APK's SHA-256:`n$($verify.Text)" }
+    $signed = $match.Groups[1].Value.ToUpper()
+    if ($signed -ne $expected) {
+        Fail "The $what APK is signed with $signed, not the key in assetlinks.json ($expected)."
+    }
 }
-Write-Host 'Signed with the key in assetlinks.json.'
+
+Test-Signed $apk 'phone'
+Test-Signed $watchApk 'watch'
+Write-Host 'Both signed with the key in assetlinks.json.'
 
 # ---------------------------------------------------------------------------
 Step 'Copying to release\'
 
 $dir = Join-Path $repo "release\$versionName"
 $target = Join-Path $dir "$apkName-$versionName.apk"
-if (Test-Path $target) {
-    Note "release\$versionName already has an APK, and it is being replaced. If that version was"
+$watchTarget = Join-Path $dir "$apkName-$versionName-watch.apk"
+if ((Test-Path $target) -or (Test-Path $watchTarget)) {
+    Note "release\$versionName already has APKs, and they are being replaced. If that version was"
     Note 'published, raise versionCode and versionName in android\native\app\build.gradle instead.'
 }
 New-Item -ItemType Directory -Force $dir | Out-Null
 Copy-Item $apk $target -Force
-
-$hash = (Get-FileHash $target -Algorithm SHA256).Hash.ToLower()
-$size = [math]::Round((Get-Item $target).Length / 1MB, 1)
+Copy-Item $watchApk $watchTarget -Force
 
 Write-Host ''
-Write-Host "Built: release\$versionName\$apkName-$versionName.apk ($size MB)" -ForegroundColor Green
-Write-Host "SHA-256: $hash"
+foreach ($built in $target, $watchTarget) {
+    $hash = (Get-FileHash $built -Algorithm SHA256).Hash.ToLower()
+    $size = [math]::Round((Get-Item $built).Length / 1MB, 1)
+    Write-Host "Built: release\$versionName\$(Split-Path $built -Leaf) ($size MB)" -ForegroundColor Green
+    Write-Host "SHA-256: $hash"
+}
 Write-Host ''
 Write-Host 'Next:'
-Write-Host "  1. Commit the APK with the code (and assetlinks.json on a first build); deploy the site first."
-Write-Host "  2. GitHub > Releases > new release, tag android-v$versionName, attach the APK before publishing,"
-Write-Host '     and tick Set as the latest release. See release\README.md.'
+Write-Host "  1. Commit both APKs with the code (and assetlinks.json on a first build); deploy the site first."
+Write-Host "  2. GitHub > Releases > new release, tag android-v$versionName, attach both APKs before"
+Write-Host '     publishing, and tick Set as the latest release. See release\README.md.'
+Write-Host '  3. Installing the watch app: android\native\wear\README.md.'

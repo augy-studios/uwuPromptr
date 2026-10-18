@@ -19,4 +19,12 @@ ext {
     // Not 19.5: built with a newer Kotlin than this build reads. 19.4 needs
     // desugaring.
     playServicesNearbyVersion = '19.3.0'
+    // The Wear OS app (wear/), and the phone's side of its link (WatchLink).
+    playServicesWearableVersion = '20.0.1'
+    wearTilesVersion = '1.6.2'
+    protolayoutVersion = '1.4.2'
+    concurrentFuturesVersion = '1.2.0'
+    // Ambient mode (AmbientLifecycleObserver), and Open on phone.
+    wearVersion = '1.3.0'
+    wearRemoteInteractionsVersion = '1.1.0'
 }

@@ -34,8 +34,13 @@ export function describeRelease(release) {
   const version = tag.slice(TAG_PREFIX.length);
   if (!VERSION.test(version)) return null;
 
+  // The phone's APK. The Wear OS watch's, -watch.apk, sits beside it on the
+  // same release and is never offered to a phone: it would not install there.
   const apk = (release.assets ?? []).find(
-    (asset) => asset?.state === "uploaded" && /\.apk$/i.test(asset?.name ?? "")
+    (asset) =>
+      asset?.state === "uploaded" &&
+      /\.apk$/i.test(asset?.name ?? "") &&
+      !/-watch\.apk$/i.test(asset?.name ?? "")
   );
   if (!apk) return null;
 

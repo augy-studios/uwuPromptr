@@ -80,7 +80,7 @@ jobs:
           if [ "$EVENT" = workflow_dispatch ] && [ -n "$tag" ] && ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" \
               --title "uwuPromptr ${tag#android-v}" \
-              --notes "Desktop installers from the Build desktop apps workflow. Add the APK and the release notes (release/README.md), then publish."
+              --notes "Desktop installers from the Build desktop apps workflow. Add the phone and watch APKs and the release notes (release/README.md), then publish."
           fi
 
           {

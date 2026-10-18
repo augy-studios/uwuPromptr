@@ -21,11 +21,14 @@ powershell -ExecutionPolicy Bypass -File android\build-apk.ps1
 ```
 
 It finds Java and the Android SDK, makes the signing key on the first run, syncs Capacitor,
-builds, checks the signature, and leaves the APK at:
+builds the phone's app and the Wear OS watch's, checks both signatures, and leaves the APKs at:
 
 ```text
-release\<versionName>\uwupromptr-<versionName>.apk      e.g. release\1.0.0\uwupromptr-1.0.0.apk
+release\<versionName>\uwupromptr-<versionName>.apk         the phone's
+release\<versionName>\uwupromptr-<versionName>-watch.apk   the watch's (native\wear\README.md)
 ```
+
+Both share the key and the version: raise it in `native\app\build.gradle` only.
 
 You need **JDK 21 or newer** (JDK 24 works; the script finds Temurin, Oracle and Microsoft
 installs, or `JAVA_HOME`), the **Android SDK** (Android Studio's, or `ANDROID_HOME`), and
@@ -55,7 +58,7 @@ missing, the script **stops** rather than make a second one.
 1. Raise **`versionCode`** (+1) and **`versionName`** in `native\app\build.gradle`. Phones only
    accept a higher `versionCode`.
 2. Run the build command.
-3. Commit the APK with the code, deploy the site first if the release needs anything new from
+3. Commit both APKs with the code, deploy the site first if the release needs anything new from
    it, then publish on GitHub: see `release\README.md`.
 
 ### Android Studio
@@ -76,6 +79,7 @@ release APK over it fails with "App not installed": uninstall first.
 | **Volume keys start and stop** | Prompter settings > Android app | Either volume key, a Bluetooth selfie shutter, or a headset's button starts and stops the script |
 | **Offline remote** | Remote panel > **Let a nearby phone connect**; on the other phone, the remote page's **Connect nearby** | Two phones with the app link directly over Bluetooth and Wi-Fi Direct (Google Nearby Connections), with no router and no mobile data |
 | **New version alerts** | Prompter settings > Android app | A notification when a new APK is published. Needs Firebase: `FIREBASE-SETUP.md` |
+| **Wear OS watch remote** | The uwuPromptr watch app and its **Prompter remote** tile | Play, pause, restart, and the speed on the crown, for the prompter on this phone or through its remote page; wrist taps to keep time. A separate APK: `native/wear/README.md` |
 | Links open in the app | cue.uwuapps.org links, and `uwu://cue/remote?id=XXXXXX` | Once `assetlinks.json` is deployed with the real key |
 
 The status bar is hidden (swipe down to see it), and its icons follow the page's light or
@@ -108,7 +112,9 @@ The brief asked for native features only where they are needed. Left out:
 - **Floating overlay over other apps** (`SYSTEM_ALERT_WINDOW`), **full-screen intent alerts**,
   **battery optimisation exemption**: Google scrutinises all three, and nothing here needs
   them. A prompter in front keeps running; the screen-on flag covers long takes.
-- **Wear OS and ColorOS watch apps**: separate apps with their own builds.
+- **A ColorOS watch app**: ColorOS's watch software isn't open. The Wear OS app (`native/wear/`)
+  rebuilds its crown, low-power display and motion gestures from what Wear OS offers, and runs
+  on OPPO's and OnePlus's own Wear OS watches too.
 
 ## Permissions
 
@@ -142,17 +148,20 @@ android/
       MainActivity.java             window, back, links, notification taps, key forwarding
       CuePlugin.java                everything the page can ask for (the "Cue" plugin)
       NearbyLink.java               the offline remote over Nearby Connections
+      WatchLink.java                the Wear OS watch's messages, to and from the page
       UpdateActivity.java           checks, downloads, verifies and installs updates
       InstallStatus.java            hears back from Android's installer
       Notifications.java            the "New versions" channel
     app/src/main/res/               icons and splash (from main-site/UPC-main.png), colours,
                                     values-night for dark mode
+    wear/                           the Wear OS watch app, built with the phone's (wear/README.md)
 
 main-site/                          the site's side
   js/app-bridge.js                  the channel to the app; has(), call(), on()
   js/app-native.js                  the app-only buttons and settings
   js/app-update.js                  the release check and the bar's Update
   js/nearby.js                      the offline remote's page side
+  js/watch.js                       the Wear OS watch's page side
   api/app-release.js                the newest release, for the updater (cached 10 minutes)
   api/push/release.js               GitHub webhook: the "new version" notification
   api/_push/fcm.js, api/_lib/release.js
