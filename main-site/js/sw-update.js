@@ -1,6 +1,11 @@
 // The update prompt bar. A new worker never activates on its own: it
 // downloads, installs, and waits, and the only thing that promotes it is a
 // person pressing Reload.
+//
+// Inside the Android app the same bar also offers a new version of the app
+// itself (js/app-update.js). One bar, one state, one order: a new version of
+// the site comes first, because Reload is quick and the app's update is a
+// download and an install.
 
 import { escapeHtml } from "./ui.js";
 
@@ -10,6 +15,8 @@ const COPY = {
   label: "Update",
   ready: "A new version of uwuPromptr is ready.",
   reload: "Reload",
+  appReady: (version) => `Version ${version} of the uwuPromptr app is out.`,
+  appUpdate: "Update",
   later: "Not now",
 };
 
@@ -18,11 +25,41 @@ let waitingWorker = null;
 let reloading = false;
 let dismissed = false;
 
+// A newer app on GitHub, offered by app-update.js: { version, onUpdate }.
+let appOffer = null;
+let appDismissed = false;
+
+/* The bar is the topmost thing on the page, and on the prompter the Edge Trays
+   sit under it. Its height goes out as --banner-h so they start below it and
+   glide as it comes and goes (edge-tray-spec.md section 6.3). */
+const sizer =
+  typeof ResizeObserver === "function"
+    ? new ResizeObserver(([entry]) => {
+        document.documentElement.style.setProperty("--banner-h", `${entry.target.offsetHeight}px`);
+      })
+    : null;
+
+function publishBanner(bar) {
+  const root = document.documentElement;
+  if (bar) {
+    root.classList.add("has-banner");
+    sizer?.observe(bar);
+  } else {
+    sizer?.disconnect();
+    root.classList.remove("has-banner");
+    root.style.setProperty("--banner-h", "0px");
+  }
+}
+
 function render() {
   const existing = document.querySelector(".update-notice");
 
-  if (!waitingWorker || dismissed) {
+  const site = waitingWorker && !dismissed;
+  const app = !site && appOffer && !appDismissed;
+
+  if (!site && !app) {
     existing?.remove();
+    if (existing) publishBanner(null);
     return;
   }
 
@@ -32,9 +69,9 @@ function render() {
   bar.setAttribute("aria-label", COPY.label);
   bar.innerHTML = `
     <div class="update-notice-inner">
-      <p>${escapeHtml(COPY.ready)}</p>
+      <p>${escapeHtml(site ? COPY.ready : COPY.appReady(appOffer.version))}</p>
       <button type="button" class="btn btn-primary" data-sw-update>
-        ${escapeHtml(COPY.reload)}
+        ${escapeHtml(site ? COPY.reload : COPY.appUpdate)}
       </button>
       <button type="button" class="btn btn-quiet" data-sw-later>
         ${escapeHtml(COPY.later)}
@@ -43,19 +80,33 @@ function render() {
   `;
 
   bar.querySelector("[data-sw-update]").addEventListener("click", () => {
-    // The only place anything asks for skipWaiting. The reload happens on
-    // controllerchange, not here.
-    waitingWorker?.postMessage("skip-waiting");
+    if (site) {
+      // The only place anything asks for skipWaiting. The reload happens on
+      // controllerchange, not here.
+      waitingWorker?.postMessage("skip-waiting");
+    } else {
+      appOffer?.onUpdate();
+    }
   });
 
   bar.querySelector("[data-sw-later]").addEventListener("click", () => {
-    // This page view only. Persisting it would mean somebody who dismisses
-    // once never hears about an update again.
-    dismissed = true;
+    // This page view only, per kind. Persisting it would mean somebody who
+    // dismisses once never hears about an update again.
+    if (site) dismissed = true;
+    else appDismissed = true;
     render();
   });
 
-  if (!existing) document.body.prepend(bar);
+  if (!existing) {
+    document.body.prepend(bar);
+    publishBanner(bar);
+  }
+}
+
+/** Offer a newer version of the Android app in the bar. */
+export function offerAppUpdate(offer) {
+  appOffer = offer;
+  render();
 }
 
 function watchForUpdate() {
@@ -99,6 +150,17 @@ function checkForUpdate() {
   registration.update().catch(() => {
     // A failed check is not worth reporting: the next one will do.
   });
+}
+
+/**
+ * Ask for a new worker now, for somebody who pressed Check for updates. A
+ * dismissed bar comes back too, since they have just asked about exactly this.
+ */
+export function checkSiteNow() {
+  dismissed = false;
+  if (waitingWorker) render();
+  if (!registration) return Promise.resolve();
+  return registration.update().catch(() => {});
 }
 
 function watchForNewDeploys() {

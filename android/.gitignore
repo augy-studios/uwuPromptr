@@ -1,0 +1,21 @@
+# The signing key and its passwords. Never committed, always backed up: losing
+# them means no installed phone can ever be updated again.
+android.keystore
+*.keystore
+*.jks
+*.p12
+*.pfx
+keystore.properties
+
+# Firebase: the app's config, and any service account key saved here by mistake.
+google-services.json
+*firebase-adminsdk*.json
+*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
+
+node_modules/
+
+# Build output. The signed APKs that are published are copied to ../release/,
+# which is committed.
+*.apk
+*.aab
+*.idsig

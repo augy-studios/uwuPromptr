@@ -36,6 +36,18 @@ export const icons = {
   check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
   up: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`,
   down: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>`,
+
+  // The Edge Trays' tabs. One chevron, pointing right, turned by CSS to face
+  // whichever way the tray will go.
+  chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>`,
+
+  // Android app only. Check for updates, as android-app-spec.md draws it.
+  download: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v8M8.5 12l3.5 3.5 3.5-3.5"/></svg>`,
+  // Full brightness: a phone giving off light. Not the sun, which is the theme.
+  brightness: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M3 12h2M19 12h2M4.6 6.6l1.6 1.2M19.4 6.6l-1.6 1.2M4.6 17.4l1.6-1.2M19.4 17.4l-1.6-1.2"/></svg>`,
+  bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15.25v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 19.75h4"/></svg>`,
+  // The offline remote: a phone sending out waves either side.
+  nearby: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9.5" y="6" width="5" height="12" rx="1.2"/><path d="M6.5 9.5a3.5 3.5 0 0 0 0 5M17.5 9.5a3.5 3.5 0 0 1 0 5M4 7a7 7 0 0 0 0 10M20 7a7 7 0 0 1 0 10"/></svg>`,
 };
 
 export function icon(name) {

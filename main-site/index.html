@@ -21,6 +21,30 @@
             document.documentElement.setAttribute("data-mode", m);
             document.documentElement.setAttribute("data-color-theme", c);
         })();
+
+        // The Edge Trays' state and side, and the Android app's layout, before
+        // first paint, so a returning reader whose trays were put away does not
+        // watch them slide shut on load. js/edge-tray.js takes over from here
+        // and removes trays-booting once the bars have been measured.
+        (function () {
+            var k = "uwupromptr";
+            var root = document.documentElement;
+            root.classList.add("trays-booting");
+            // The app tags its user agent, which is there before the bridge
+            // answers. It hides the status bar, so nothing needs a top inset.
+            if (/uwuPromptrApp\/\d+/.test(navigator.userAgent)) {
+                root.setAttribute("data-app", "android");
+                root.setAttribute("data-statusbar", "hidden");
+            }
+            try {
+                if (localStorage.getItem(k + ".trayOpen") === "0") root.classList.add("side-collapsed");
+                if (localStorage.getItem(k + ".topTrayOpen") === "0") root.classList.add("top-collapsed");
+                if (localStorage.getItem(k + ".bottomTrayOpen") === "0") root.classList.add("bottom-collapsed");
+                if (localStorage.getItem(k + ".traySide") === "left") root.setAttribute("data-tray-side", "left");
+            } catch (e) {
+                // Storage blocked: every tray opens, on the right.
+            }
+        })();
     </script>
 
     <!-- Google tag (gtag.js) -->
@@ -63,127 +87,178 @@
     <meta property="og:image" content="/UPC-512.png" />
 </head>
 
-<body>
-    <header class="topbar">
-        <div class="brand">
-            <img src="/UPC-192.png" alt="" width="26" height="26">
-            <span>uwuPromptr</span>
+<body class="page-prompter">
+    <!-- Three Edge Trays (edge-tray-spec.md). The top bar and the bottom bar
+         each slide off their edge, leaving a tab to bring them back; the side
+         tray holds what does not fit in either bar. Each one's state is
+         remembered, and while one is open the script keeps clear of it. -->
+
+    <!-- Top Edge Tray: the script and the panels about it. The tab is below the
+         bar, so it comes after it. -->
+    <div class="hud-top">
+        <div class="hbar" id="topTray">
+            <header class="topbar" id="topBar">
+                <div class="brand">
+                    <img src="/UPC-192.png" alt="" width="26" height="26">
+                    <span>uwuPromptr</span>
+                </div>
+
+                <button class="script-switch" id="scriptSwitch" type="button" aria-haspopup="dialog">
+                    <span data-icon="scripts"></span>
+                    <span class="script-name" id="currentScriptName">Loading</span>
+                </button>
+
+                <!-- Each action carries its shortcut underneath. The hint is aria-hidden
+                     because the accessible name already ends in the same keys, and a
+                     screen reader should not read them twice. -->
+                <div class="topbar-actions">
+                    <div class="key-action">
+                        <button class="icon-btn" id="editBtn" type="button" aria-label="Edit script (Ctrl+E)" title="Edit script (Ctrl+E)">
+                            <span data-icon="edit"></span>
+                        </button>
+                        <span class="key-hint" aria-hidden="true">Ctrl+E</span>
+                    </div>
+                    <div class="key-action">
+                        <!-- The dot sits over the button's top right corner and says
+                             whether a remote is connected without the panel being
+                             open. Its meaning is carried in the button's name as well,
+                             since colour alone is not something everyone can read. -->
+                        <button class="icon-btn has-status" id="remoteBtn" type="button"
+                            aria-label="Remote control (Alt+R)" title="Remote control (Alt+R)">
+                            <span data-icon="remote"></span>
+                            <span class="btn-status-dot" id="remoteBtnDot" aria-hidden="true"></span>
+                        </button>
+                        <span class="key-hint" aria-hidden="true">Alt+R</span>
+                    </div>
+                </div>
+            </header>
+            <button class="tray-tab htab" id="topTab" type="button"
+                aria-controls="topBar" aria-expanded="true" aria-label="Hide top bar" title="Hide top bar">
+                <span data-icon="chevronRight"></span>
+            </button>
         </div>
+    </div>
 
-        <button class="script-switch" id="scriptSwitch" type="button" aria-haspopup="dialog">
-            <span data-icon="scripts"></span>
-            <span class="script-name" id="currentScriptName">Loading</span>
-        </button>
-
-        <!-- Each action carries its shortcut underneath. The hint is aria-hidden
-             because the accessible name already ends in the same keys, and a
-             screen reader should not read them twice. -->
-        <div class="topbar-actions">
-            <div class="key-action">
-                <button class="icon-btn" id="editBtn" type="button" aria-label="Edit script (Ctrl+E)" title="Edit script (Ctrl+E)">
-                    <span data-icon="edit"></span>
-                </button>
-                <span class="key-hint" aria-hidden="true">Ctrl+E</span>
-            </div>
-            <div class="key-action">
-                <!-- The dot sits over the button's top right corner and says
-                     whether a remote is connected without the panel being
-                     open. Its meaning is carried in the button's name as well,
-                     since colour alone is not something everyone can read. -->
-                <button class="icon-btn has-status" id="remoteBtn" type="button"
-                    aria-label="Remote control (Alt+R)" title="Remote control (Alt+R)">
-                    <span data-icon="remote"></span>
-                    <span class="btn-status-dot" id="remoteBtnDot" aria-hidden="true"></span>
-                </button>
-                <span class="key-hint" aria-hidden="true">Alt+R</span>
-            </div>
-            <div class="key-action">
-                <button class="icon-btn" id="settingsBtn" type="button" aria-label="Prompter settings (Ctrl+P)" title="Prompter settings (Ctrl+P)">
+    <!-- Side Edge Tray: settings, the display toggles, fullscreen and theme,
+         and in the Android app its own actions. The tab is on the inner side:
+         first on the right, moved after the buttons by script on the left. -->
+    <div class="hud-side">
+        <div class="tray side-tray" id="sideTray">
+            <button class="tray-tab" id="sideTab" type="button"
+                aria-controls="sideButtons" aria-expanded="true" aria-label="Hide menu" title="Hide menu">
+                <span data-icon="chevronRight"></span>
+            </button>
+            <div class="tray-buttons" id="sideButtons">
+                <button class="glass-btn" id="settingsBtn" type="button" aria-haspopup="dialog"
+                    aria-label="Prompter settings (Ctrl+P)" title="Prompter settings (Ctrl+P)">
                     <span data-icon="settings"></span>
                 </button>
-                <span class="key-hint" aria-hidden="true">Ctrl+P</span>
-            </div>
-            <div class="key-action">
-                <button class="icon-btn" id="themeBtn" type="button" aria-label="Theme (Alt+T)" title="Theme (Alt+T)">
+                <span class="tray-rule" aria-hidden="true"></span>
+                <button class="glass-btn" type="button" data-toggle="flipX" aria-pressed="false"
+                    aria-label="Mirror across" title="Mirror across">
+                    <span data-icon="flipX"></span>
+                </button>
+                <button class="glass-btn" type="button" data-toggle="flipY" aria-pressed="false"
+                    aria-label="Mirror down" title="Mirror down">
+                    <span data-icon="flipY"></span>
+                </button>
+                <button class="glass-btn" type="button" data-toggle="focusLine" aria-pressed="false"
+                    aria-label="Focus line" title="Focus line">
+                    <span data-icon="focus"></span>
+                </button>
+                <button class="glass-btn" id="fullscreenBtn" type="button" aria-label="Fullscreen (F)" title="Fullscreen (F)">
+                    <span data-icon="fullscreen"></span>
+                </button>
+                <span class="tray-rule" aria-hidden="true"></span>
+                <!-- The Android app's buttons are added here, before the theme
+                     button, by js/app-native.js. -->
+                <button class="glass-btn" id="themeBtn" type="button" aria-haspopup="dialog"
+                    aria-label="Theme (Alt+T)" title="Theme (Alt+T)">
                     <span data-icon="sun"></span>
                 </button>
-                <span class="key-hint" aria-hidden="true">Alt+T</span>
             </div>
         </div>
-    </header>
+    </div>
 
     <main class="stage">
-        <div class="viewport" id="viewport">
-            <div class="script-text" id="scriptText"></div>
-        </div>
-
-        <section class="editor hidden" id="editor" aria-label="Edit script">
-            <div class="editor-head">
-                <input class="editor-name" id="editorName" type="text" aria-label="Script name" placeholder="Script name">
-                <button class="btn btn-quiet" id="editorCancel" type="button">Cancel</button>
-                <button class="btn btn-primary" id="editorDone" type="button">
-                    <span data-icon="check"></span>Done
-                </button>
+        <!-- The part of the stage between the trays. It shrinks as a tray opens
+             and grows as one is put away, so no tray ever sits on the script. -->
+        <div class="reading" id="reading">
+            <div class="viewport" id="viewport">
+                <div class="script-text" id="scriptText"></div>
             </div>
-            <textarea class="editor-body" id="editorBody" spellcheck="true"
-                placeholder="Type or paste your script here. It saves as you type."></textarea>
-        </section>
+
+            <section class="editor hidden" id="editor" aria-label="Edit script">
+                <div class="editor-head">
+                    <input class="editor-name" id="editorName" type="text" aria-label="Script name" placeholder="Script name">
+                    <button class="btn btn-quiet" id="editorCancel" type="button">Cancel</button>
+                    <button class="btn btn-primary" id="editorDone" type="button">
+                        <span data-icon="check"></span>Done
+                    </button>
+                </div>
+                <textarea class="editor-body" id="editorBody" spellcheck="true"
+                    placeholder="Type or paste your script here. It saves as you type."></textarea>
+            </section>
+        </div>
     </main>
 
-    <footer class="transport">
-        <div class="key-action">
-            <button class="play-btn" id="playBtn" type="button" aria-label="Play (Space)" title="Play (Space)">
-                <span data-icon="play"></span>
+    <!-- Bottom Edge Tray: the transport. The tab is above the bar, so it comes
+         first. -->
+    <div class="hud-bottom">
+        <div class="hbar" id="bottomTray">
+            <button class="tray-tab htab" id="bottomTab" type="button"
+                aria-controls="transportBar" aria-expanded="true" aria-label="Hide bottom bar" title="Hide bottom bar">
+                <span data-icon="chevronRight"></span>
             </button>
-            <span class="key-hint" aria-hidden="true">Space</span>
-        </div>
+            <footer class="transport" id="transportBar">
+                <div class="key-action">
+                    <button class="play-btn" id="playBtn" type="button" aria-label="Play (Space)" title="Play (Space)">
+                        <span data-icon="play"></span>
+                    </button>
+                    <span class="key-hint" aria-hidden="true">Space</span>
+                </div>
 
-        <div class="key-action">
-            <button class="icon-btn" id="resetBtn" type="button" aria-label="Reset to the top (Esc)" title="Reset to the top (Esc)">
-                <span data-icon="reset"></span>
-            </button>
-            <span class="key-hint" aria-hidden="true">Esc</span>
-        </div>
+                <div class="key-action">
+                    <button class="icon-btn" id="resetBtn" type="button" aria-label="Reset to the top (Esc)" title="Reset to the top (Esc)">
+                        <span data-icon="reset"></span>
+                    </button>
+                    <span class="key-hint" aria-hidden="true">Esc</span>
+                </div>
 
-        <!-- One hint under the whole pill rather than six under its buttons:
-             the pair of keys belongs to the setting, not to the minus and the
-             plus separately, and three captions across a 32px row would not be
-             readable. -->
-        <div class="key-action is-stepper">
-            <div class="stepper">
-                <button class="icon-btn" type="button" data-nudge="fontSize:-1" aria-label="Smaller font (Down arrow)" title="Smaller font (Down arrow)">
-                    <span data-icon="minus"></span>
-                </button>
-                <button class="stepper-value" id="fontValue" type="button" aria-label="Font size, opens settings"></button>
-                <button class="icon-btn" type="button" data-nudge="fontSize:1" aria-label="Larger font (Up arrow)" title="Larger font (Up arrow)">
-                    <span data-icon="plus"></span>
-                </button>
-            </div>
-            <span class="key-hint" aria-hidden="true">&uarr; &darr;</span>
-        </div>
+                <!-- One hint under the whole pill rather than six under its buttons:
+                     the pair of keys belongs to the setting, not to the minus and the
+                     plus separately, and three captions across a 32px row would not be
+                     readable. -->
+                <div class="key-action is-stepper">
+                    <div class="stepper">
+                        <button class="icon-btn" type="button" data-nudge="fontSize:-1" aria-label="Smaller font (Down arrow)" title="Smaller font (Down arrow)">
+                            <span data-icon="minus"></span>
+                        </button>
+                        <button class="stepper-value" id="fontValue" type="button" aria-label="Font size, opens settings"></button>
+                        <button class="icon-btn" type="button" data-nudge="fontSize:1" aria-label="Larger font (Up arrow)" title="Larger font (Up arrow)">
+                            <span data-icon="plus"></span>
+                        </button>
+                    </div>
+                    <span class="key-hint" aria-hidden="true">&uarr; &darr;</span>
+                </div>
 
-        <div class="key-action is-stepper">
-            <div class="stepper">
-                <button class="icon-btn" type="button" data-nudge="speed:-1" aria-label="Slower (Left arrow)" title="Slower (Left arrow)">
-                    <span data-icon="minus"></span>
-                </button>
-                <button class="stepper-value" id="speedValue" type="button" aria-label="Speed, opens settings"></button>
-                <button class="icon-btn" type="button" data-nudge="speed:1" aria-label="Faster (Right arrow)" title="Faster (Right arrow)">
-                    <span data-icon="plus"></span>
-                </button>
-            </div>
-            <span class="key-hint" aria-hidden="true">&larr; &rarr;</span>
-        </div>
+                <div class="key-action is-stepper">
+                    <div class="stepper">
+                        <button class="icon-btn" type="button" data-nudge="speed:-1" aria-label="Slower (Left arrow)" title="Slower (Left arrow)">
+                            <span data-icon="minus"></span>
+                        </button>
+                        <button class="stepper-value" id="speedValue" type="button" aria-label="Speed, opens settings"></button>
+                        <button class="icon-btn" type="button" data-nudge="speed:1" aria-label="Faster (Right arrow)" title="Faster (Right arrow)">
+                            <span data-icon="plus"></span>
+                        </button>
+                    </div>
+                    <span class="key-hint" aria-hidden="true">&larr; &rarr;</span>
+                </div>
 
-        <div class="key-action is-fullscreen">
-            <button class="icon-btn" id="fullscreenBtn" type="button" aria-label="Fullscreen (F)" title="Fullscreen (F)">
-                <span data-icon="fullscreen"></span>
-            </button>
-            <span class="key-hint" aria-hidden="true">F</span>
+                <div class="timer" id="timer" role="timer" aria-label="Elapsed time">00:00:00</div>
+            </footer>
         </div>
-
-        <div class="timer" id="timer" role="timer" aria-label="Elapsed time">00:00:00</div>
-    </footer>
+    </div>
 
     <!-- Scripts menu -->
     <div class="modal-backdrop hidden" id="scriptsModal">
@@ -283,6 +358,35 @@
                 </button>
             </div>
 
+            <p class="modal-section-label section-head">Layout</p>
+            <div class="setting">
+                <span class="setting-head" id="traySideLabel">Side menu</span>
+                <div class="mode-toggle" id="traySideToggle" role="group" aria-labelledby="traySideLabel">
+                    <button class="mode-btn" type="button" data-side="left" aria-pressed="false">Left edge</button>
+                    <button class="mode-btn" type="button" data-side="right" aria-pressed="false">Right edge</button>
+                </div>
+            </div>
+
+            <!-- Shown only inside the Android app, and each control only when
+                 the app says it can do it. -->
+            <div class="app-settings" id="appSettings" hidden>
+                <p class="modal-section-label section-head">Android app</p>
+                <div class="toggle-grid">
+                    <button class="toggle-btn" type="button" id="keysToggle" aria-pressed="false" hidden>
+                        <span data-icon="remote"></span>Volume keys start and stop
+                    </button>
+                    <button class="toggle-btn" type="button" id="alertsToggle" aria-pressed="false" hidden>
+                        <span data-icon="bell"></span>New version alerts
+                    </button>
+                </div>
+                <p class="mode-note" id="keysNote" hidden>
+                    Either volume key, a Bluetooth selfie shutter or a headset's button
+                    starts and stops the script while the prompter is open.
+                </p>
+                <p class="mode-note" id="appSettingsNote" hidden></p>
+                <button class="btn" type="button" id="appSettingsOpen" hidden>Open Android's settings</button>
+            </div>
+
             <p class="modal-section-label section-head">Keyboard</p>
             <div class="shortcut-row"><span>Start and stop</span><kbd>Space</kbd></div>
             <div class="shortcut-row"><span>Font size</span><kbd>Up</kbd><kbd>Down</kbd></div>
@@ -344,6 +448,21 @@
                 to the other if there is no shared wifi.
             </p>
             <p class="mode-note">Pairing needs a connection. The prompter itself keeps working offline.</p>
+
+            <!-- Android app only, with Google Play services: a second phone with
+                 the app connects straight to this one, with no network. -->
+            <div class="nearby-block" id="nearbyBlock" hidden>
+                <p class="modal-section-label">No wifi? Connect phone to phone</p>
+                <p class="mode-note">
+                    With the uwuPromptr app on both phones, the remote can connect over
+                    Bluetooth and Wi-Fi Direct, with no router and no mobile data. On the
+                    other phone, open the remote, enter this ID and tap Connect nearby.
+                </p>
+                <button class="btn btn-block" id="nearbyHostBtn" type="button">
+                    <span data-icon="nearby"></span><span id="nearbyHostLabel">Let a nearby phone connect</span>
+                </button>
+                <p class="mode-note" id="nearbyHostStatus" hidden></p>
+            </div>
 
             <!-- The other half of the pairing. Somebody holding the phone arrives
                  here looking for where to type the code, and without this the

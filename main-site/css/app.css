@@ -1,10 +1,29 @@
 /* uwuPromptr layout. Every colour here comes from a token in theme.css. */
 
+/* ---- safe areas ----
+   One set of tokens for the notch, the status bar and the gesture bar. In the
+   Android app the WebView reports env(safe-area-inset-*) as 0 and Capacitor's
+   SystemBars passes the real values as --safe-area-inset-*, so both are read
+   here and env() is used nowhere else. The app hides the status bar
+   (data-statusbar, set in <head> from the user agent), so the top needs none. */
+:root {
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --safe-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+}
+:root[data-statusbar="hidden"] { --safe-top: 0px; }
+
 body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
+
+/* The Android app's WebView would otherwise darken a page it thinks is light
+   in the phone's dark mode, which inverts the brand colours. */
+:root[data-mode="light"] { color-scheme: light; }
+:root[data-mode="dark"] { color-scheme: dark; }
 
 /* ---- update prompt bar ----
    Full width at the top of the document, quieter than the app's own header,
@@ -25,11 +44,24 @@ body {
   margin: 0 auto;
   padding: 0.5rem 1rem;
   /* Under the notch on a phone, where the bar is the topmost thing on screen. */
-  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-top: max(0.5rem, var(--safe-top));
 }
 
 .update-notice p { flex: 1 1 auto; min-width: 0; }
 .update-notice .btn { flex: none; }
+
+/* On the prompter everything else is fixed, so the bar is too: across the top,
+   above the trays and below the modals. Its height goes out as --banner-h, and
+   the top tray and the reading area start beneath it. */
+.page-prompter .update-notice {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
 
 /* ---- buttons ---- */
 .btn {
@@ -81,13 +113,15 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  padding-top: max(10px, env(safe-area-inset-top));
+  padding-top: max(10px, var(--safe-top));
   background: var(--surface);
   border-bottom: 1px solid var(--surface-border);
   backdrop-filter: blur(18px) saturate(150%);
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
+/* Under the update bar, which has already cleared the notch. */
+:root.has-banner .hud-top .topbar { padding-top: 10px; }
 
 .brand {
   display: flex;
@@ -131,11 +165,26 @@ body {
   flex: none;
 }
 
-/* ---- stage ---- */
+/* ---- stage ----
+   The whole screen, in the script's colours, with the trays floating over it.
+   The script itself lives in .reading, the part of the stage the open trays
+   leave clear. */
 .stage {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
+  position: fixed;
+  inset: 0;
+}
+
+.reading {
+  position: absolute;
+  top: var(--room-top);
+  bottom: var(--room-bottom);
+  left: var(--room-left);
+  right: var(--room-right);
+  transition:
+    top var(--tray-time) var(--tray-ease),
+    bottom var(--tray-time) var(--tray-ease),
+    left var(--tray-time) var(--tray-ease),
+    right var(--tray-time) var(--tray-ease);
 }
 
 .viewport {
@@ -174,13 +223,13 @@ body {
 
 /* The reading guide. Two arrows at the edges rather than a line across the
    text, so it marks the eyeline without sitting on top of a word. They are
-   positioned against the stage rather than the viewport: the viewport is the
-   scrolling box, and an arrow anchored to it is clipped by its own overflow
-   at exactly the two edges the arrows live on.
+   positioned against the reading area rather than the viewport: the viewport
+   is the scrolling box, and an arrow anchored to it is clipped by its own
+   overflow at exactly the two edges the arrows live on.
    The triangles point inward, so the border that carries the colour is the
    one away from the edge each sits on. */
-.stage.show-focus::before,
-.stage.show-focus::after {
+.reading.show-focus::before,
+.reading.show-focus::after {
   content: "";
   position: absolute;
   top: var(--focus-position, 40%);
@@ -193,16 +242,16 @@ body {
   z-index: 2;
   opacity: 0.55;
 }
-.stage.show-focus::before {
+.reading.show-focus::before {
   left: 0;
   border-left: 16px solid currentColor;
 }
-.stage.show-focus::after {
+.reading.show-focus::after {
   right: 0;
   border-right: 16px solid currentColor;
 }
-:root[data-mode="light"] .stage.show-focus { color: #121815; }
-:root[data-mode="dark"] .stage.show-focus { color: var(--brand); }
+:root[data-mode="light"] .reading.show-focus { color: #121815; }
+:root[data-mode="dark"] .reading.show-focus { color: var(--brand); }
 
 /* ---- editor ---- */
 .editor {
@@ -261,7 +310,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  padding-bottom: max(10px, var(--safe-bottom));
   background: var(--surface);
   border-top: 1px solid var(--surface-border);
   backdrop-filter: blur(18px) saturate(150%);
@@ -352,18 +401,12 @@ body {
 .timer.hidden { display: none; }
 
 /* ---- chrome hiding while playing ----
-   Fullscreen or not, the bars fade out of the way once the script is
-   moving, and come back the moment somebody moves the pointer. */
-body.chrome-hidden .topbar {
-  opacity: 0;
-  transform: translateY(-100%);
-  pointer-events: none;
-}
-body.chrome-hidden .transport {
-  opacity: 0;
-  transform: translateY(100%);
-  pointer-events: none;
-}
+   Fullscreen or not, the trays and their tabs fade out of the way once the
+   script is moving, and come back the moment somebody moves the pointer or
+   touches the screen. The room they leave stays put: resizing the reading
+   area mid-read would shift the words under the reader's eyes. */
+body.chrome-hidden :is(.hud-top, .hud-bottom, .hud-side) { opacity: 0; }
+body.chrome-hidden :is(.hud-top, .hud-bottom, .hud-side) * { pointer-events: none !important; }
 
 /* ---- scripts menu ---- */
 .script-list {
@@ -625,9 +668,9 @@ input[type="range"]:focus-visible { outline: 2px solid var(--brand-ink); outline
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(24px + env(safe-area-inset-bottom));
+  bottom: calc(24px + var(--safe-bottom));
   transform: translateX(-50%);
-  z-index: 60;
+  z-index: 1100;
   padding: 10px 16px;
   border-radius: 999px;
   font-size: 0.85rem;
@@ -643,6 +686,8 @@ input[type="range"]:focus-visible { outline: 2px solid var(--brand-ink); outline
   transform: translateX(-50%) translateY(8px);
   transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
 }
+/* Above the bottom tray and its tab rather than over them. */
+.page-prompter .toast { bottom: calc(var(--room-bottom) + 40px); }
 
 /* ---- shortcuts list ---- */
 .shortcut-row {
@@ -884,17 +929,13 @@ body.locked { overflow: hidden; }
   .toggle-grid { grid-template-columns: 1fr; }
   .brand span { display: none; }
 
-  /* On a phone the transport cannot hold everything at once. The clock and
-     the fullscreen button are the two that can go: the clock is repeated on
-     the remote, and fullscreen has the F key and the browser's own control.
-     The play button and the two steppers are what the bar is for, so they
-     stay, and the row keeps its single line rather than overflowing. */
+  /* On a phone the transport cannot hold everything at once. The clock is
+     the one that goes: it is repeated on the remote. Fullscreen used to go
+     too, and now lives in the side tray, where a phone can reach it. The play
+     button and the two steppers are what the bar is for, so they stay, and the
+     row keeps its single line rather than overflowing. */
   .transport { gap: 4px; padding-left: 8px; padding-right: 8px; }
   .transport .timer { display: none; }
-  /* The whole column, so hiding the button does not leave its hint behind.
-     Marked with a class rather than :has(), so the bar still lays out on a
-     browser without it instead of showing a stray caption. */
-  .transport .key-action.is-fullscreen { display: none; }
   /* The growing moved out to the wrapper, which is now the flex item. */
   .transport .key-action.is-stepper { flex: 1 1 0; min-width: 0; }
   .stepper { width: 100%; min-width: 0; justify-content: space-between; }
@@ -916,4 +957,361 @@ body.locked { overflow: hidden; }
   .transport { gap: 6px; padding-left: 10px; padding-right: 10px; }
   .stepper-value { min-width: 0; }
   .timer { padding: 8px 10px; }
+}
+
+/* ---- modals, above everything the trays put on screen ----
+   content < trays (800) < update bar (900) < modals (1000) < toast (1100). */
+.modal-backdrop {
+  z-index: 1000;
+  padding:
+    max(12px, var(--safe-top))
+    max(12px, var(--safe-right))
+    max(12px, var(--safe-bottom))
+    max(12px, var(--safe-left));
+}
+
+/* The settings modal's app section and the remote panel's offline pairing:
+   groups that keep the modal's own spacing inside them. */
+.app-settings,
+.nearby-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* =====================================================================
+   Edge Trays (edge-tray-spec.md)
+
+   Three of them on the prompter: the top bar slides off the top edge, the
+   transport off the bottom, and a column of glass buttons off the left or
+   right. Each leaves a tab flush with its edge to bring it back. The state is
+   a class on <html> (top-collapsed, bottom-collapsed, side-collapsed), set
+   before first paint by the head script and after that by js/edge-tray.js.
+   ===================================================================== */
+
+:root {
+  --glass-btn: 44px;
+  /* The side the tray is on decides which safe area its inset clears. */
+  --safe-side: var(--safe-right);
+  --edge: max(16px, calc(var(--safe-side) + 16px));
+  --tray-time: 0.34s;
+  --tray-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --banner-h: 0px;
+  /* Collapsed, the top tab clears the notch; under the update bar it need not. */
+  --tab-safe-top: var(--safe-top);
+
+  /* The room the reading area leaves for each open tray. The bar heights are
+     measured by edge-tray.js; these fallbacks are close enough for the one
+     frame before that. */
+  --room-top: calc(var(--banner-h) + var(--top-bar-h, 76px));
+  --room-bottom: var(--bottom-bar-h, 74px);
+  --room-side: calc(var(--glass-btn) + var(--edge) + 12px);
+  --room-left: 0px;
+  --room-right: var(--room-side);
+}
+:root.has-banner { --tab-safe-top: 0px; }
+:root[data-tray-side="left"] {
+  --safe-side: var(--safe-left);
+  --room-left: var(--room-side);
+  --room-right: 0px;
+}
+/* Put away, a tray reserves nothing: the script takes the room, and the tab
+   floats over its edge. */
+:root.top-collapsed { --room-top: var(--banner-h); }
+:root.bottom-collapsed { --room-bottom: 0px; }
+:root.side-collapsed { --room-left: 0px; --room-right: 0px; }
+
+@media (max-width: 480px) {
+  :root {
+    --glass-btn: 40px;
+    --edge: max(10px, calc(var(--safe-side) + 10px));
+  }
+}
+
+/* ---- the fixed layers ----
+   They let clicks through, and only what is in them takes one, so the empty
+   space around a tray never blocks the script underneath. */
+.hud-top,
+.hud-bottom,
+.hud-side {
+  position: fixed;
+  z-index: 800;
+  pointer-events: none;
+}
+
+.hud-top {
+  top: var(--banner-h);
+  left: 0;
+  right: 0;
+  /* Glides when the update bar comes or goes. */
+  transition: top 0.2s ease, opacity 0.2s ease;
+}
+
+.hud-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* ---- the top and bottom trays ----
+   A bar and its tab move as one. The tab hangs 8px off the bar's inner edge,
+   positioned against the bar, so moving the pair by the bar's height plus that
+   gap leaves exactly the tab on screen, flush with the edge. */
+.hbar {
+  position: relative;
+  transition: transform var(--tray-time) var(--tray-ease);
+}
+.hbar > * { pointer-events: auto; }
+
+.hud-top .topbar,
+.hud-bottom .transport {
+  transition: opacity calc(var(--tray-time) * 0.8) ease;
+}
+
+:root.top-collapsed .hud-top .hbar { transform: translateY(calc(-100% - 8px)); }
+:root.top-collapsed .hud-top .topbar { opacity: 0; }
+:root.bottom-collapsed .hud-bottom .hbar { transform: translateY(calc(100% + 8px)); }
+:root.bottom-collapsed .hud-bottom .transport { opacity: 0; }
+
+/* ---- the tabs ---- */
+.tray-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--surface);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-radius var(--tray-time) var(--tray-ease),
+    height var(--tray-time) var(--tray-ease),
+    padding var(--tray-time) var(--tray-ease);
+}
+.tray-tab svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--tray-time) var(--tray-ease);
+}
+
+/* Top and bottom: a pill across, centred on the bar. */
+.htab {
+  position: absolute;
+  left: calc(50% - var(--glass-btn) / 2);
+  width: var(--glass-btn);
+  height: 24px;
+  border-radius: 12px;
+}
+.hud-top .htab { top: calc(100% + 8px); }
+.hud-bottom .htab { bottom: calc(100% + 8px); }
+
+/* The chevron points the way the tray will go: away while it is open, back
+   once it is put away. */
+.hud-top .htab svg { transform: rotate(-90deg); }
+.hud-bottom .htab svg { transform: rotate(90deg); }
+
+/* At the edge it is a tab, flat on the side the screen cuts off. It grows by
+   the notch or the gesture bar on that side, so the chevron sits clear of
+   them while the tab still meets the edge. */
+:root.top-collapsed .hud-top .htab {
+  height: calc(24px + var(--tab-safe-top));
+  padding-top: var(--tab-safe-top);
+  border-radius: 0 0 12px 12px;
+  border-top: none;
+}
+:root.top-collapsed .hud-top .htab svg { transform: rotate(90deg); }
+:root.bottom-collapsed .hud-bottom .htab {
+  height: calc(24px + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  border-radius: 12px 12px 0 0;
+  border-bottom: none;
+}
+:root.bottom-collapsed .hud-bottom .htab svg { transform: rotate(-90deg); }
+
+/* ---- the side tray ----
+   Between the two bars, centred on its edge, so its tab never meets theirs. */
+.hud-side {
+  top: var(--room-top);
+  bottom: var(--room-bottom);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  transition:
+    top var(--tray-time) var(--tray-ease),
+    bottom var(--tray-time) var(--tray-ease),
+    opacity 0.2s ease;
+}
+.hud-side > * { pointer-events: auto; }
+:root[data-tray-side="left"] .hud-side {
+  right: auto;
+  left: 0;
+  align-items: flex-start;
+}
+
+.side-tray {
+  --tray-shift: calc(var(--glass-btn) + 8px + var(--edge));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform var(--tray-time) var(--tray-ease);
+}
+:root.side-collapsed .side-tray { transform: translateX(var(--tray-shift)); }
+:root.side-collapsed[data-tray-side="left"] .side-tray { transform: translateX(calc(-1 * var(--tray-shift))); }
+
+.side-tray .tray-tab {
+  flex: none;
+  width: 24px;
+  height: var(--glass-btn);
+  border-radius: 12px;
+}
+:root.side-collapsed .side-tray .tray-tab {
+  border-radius: 12px 0 0 12px;
+  border-right: none;
+}
+:root.side-collapsed .side-tray .tray-tab svg { transform: rotate(180deg); }
+:root[data-tray-side="left"] .side-tray .tray-tab svg { transform: rotate(180deg); }
+:root.side-collapsed[data-tray-side="left"] .side-tray .tray-tab {
+  border-radius: 0 12px 12px 0;
+  border-right: 1px solid var(--surface-border);
+  border-left: none;
+}
+:root.side-collapsed[data-tray-side="left"] .side-tray .tray-tab svg { transform: rotate(0deg); }
+
+/* The column. On a short screen, a phone on its side or the Android app with
+   its extra buttons, it scrolls rather than hiding its last buttons. The
+   padding is room for focus rings at the scroll box's edge; the margin takes
+   it back off the edge inset. */
+.tray-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-height: calc(100vh - var(--room-top) - var(--room-bottom));
+  max-height: calc(100dvh - var(--room-top) - var(--room-bottom));
+  padding: 8px 6px;
+  margin-right: calc(var(--edge) - 6px);
+}
+/* A scroll box only when the column does not fit (edge-tray.js adds the
+   class). A scroll box clips the buttons' shadows to its own rectangle, which
+   shows as a pale strip behind the column, so it drops them while it scrolls. */
+.tray-buttons.scrolls {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.tray-buttons.scrolls::-webkit-scrollbar { display: none; }
+.tray-buttons.scrolls > .glass-btn { box-shadow: none; }
+:root[data-tray-side="left"] .tray-buttons {
+  margin-right: 0;
+  margin-left: calc(var(--edge) - 6px);
+}
+
+/* Separates settings, the display toggles, and the global actions. */
+.tray-rule {
+  flex: none;
+  width: 24px;
+  height: 1px;
+  margin: 2px 0;
+  background: color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+/* The buttons. */
+.glass-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--glass-btn);
+  height: var(--glass-btn);
+  padding: 0;
+  border-radius: 14px;
+  background: var(--surface);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid var(--surface-border);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+/* Only where there is a real hover: on a touch screen it would stick after a tap. */
+@media (hover: hover) {
+  .glass-btn:hover { transform: translateY(-1px); background: var(--surface-strong); }
+}
+.glass-btn svg { width: 22px; height: 22px; }
+
+/* A toggle that is on: the mirrors, the focus line, full brightness. Filled
+   with the ink colour rather than the brand's, because in light mode the stage
+   behind the tray is the brand colour, and a brand fill on it vanishes. */
+.glass-btn[aria-pressed="true"],
+.glass-btn[aria-pressed="true"]:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+/* The buttons unroll: each fades in, slides back from the edge and grows, 18ms
+   after the one above it. They move by `translate` and `scale`, leaving
+   `transform` to the hover lift, so the list repeats the hover transitions.
+   After .glass-btn, so it wins. */
+.tray-buttons > * {
+  transition:
+    opacity calc(var(--tray-time) * 0.8) ease,
+    translate var(--tray-time) var(--tray-ease),
+    scale var(--tray-time) var(--tray-ease),
+    transform 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+  /* Only opening is staggered: the delay comes from the state being entered. */
+  transition-delay: calc(var(--i, 0) * 18ms), calc(var(--i, 0) * 18ms), calc(var(--i, 0) * 18ms), 0s, 0s, 0s;
+}
+/* One line per child, for the most the tray can hold: nine on the site, and
+   the Android app's two more. A button without its line pops in un-animated. */
+.tray-buttons > :nth-child(2) { --i: 1; }
+.tray-buttons > :nth-child(3) { --i: 2; }
+.tray-buttons > :nth-child(4) { --i: 3; }
+.tray-buttons > :nth-child(5) { --i: 4; }
+.tray-buttons > :nth-child(6) { --i: 5; }
+.tray-buttons > :nth-child(7) { --i: 6; }
+.tray-buttons > :nth-child(8) { --i: 7; }
+.tray-buttons > :nth-child(9) { --i: 8; }
+.tray-buttons > :nth-child(10) { --i: 9; }
+.tray-buttons > :nth-child(11) { --i: 10; }
+.tray-buttons > :nth-child(12) { --i: 11; }
+.tray-buttons > :nth-child(13) { --i: 12; }
+.tray-buttons > :nth-child(14) { --i: 13; }
+:root.side-collapsed .tray-buttons > * {
+  opacity: 0;
+  translate: 12px 0; /* towards the edge it leaves by */
+  scale: 0.85;
+  transition-delay: 0s; /* collapsing, they all go at once */
+}
+:root.side-collapsed[data-tray-side="left"] .tray-buttons > * { translate: -12px 0; }
+
+/* Keyboard focus, visible on glass in both modes. */
+.tray-tab:focus-visible,
+.glass-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* The first frame after load is drawn in its stored state with no motion, so
+   a returning reader whose trays were put away does not watch them slide shut.
+   edge-tray.js removes the class once the bars have been measured. */
+:root.trays-booting :is(.reading, .hud-top, .hud-bottom, .hud-side, .hbar, .hbar > *, .side-tray, .tray-tab, .tray-tab svg, .tray-buttons > *) {
+  transition: none !important;
+}
+
+/* theme.css already makes every transition instant; the stagger's delays have
+   to go too, or the buttons would still appear one by one. */
+@media (prefers-reduced-motion: reduce) {
+  .tray-buttons > * { transition-delay: 0s !important; }
 }

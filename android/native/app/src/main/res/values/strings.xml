@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">uwuPromptr</string>
+    <string name="title_activity_main">uwuPromptr</string>
+    <string name="package_name">org.uwuapps.cue</string>
+    <string name="custom_url_scheme">org.uwuapps.cue</string>
+
+    <!-- Notification channels: each is a switch in Android\'s settings. -->
+    <string name="channel_updates">New versions</string>
+    <string name="channel_updates_description">When a new version of the uwuPromptr app is out</string>
+
+    <!-- The updater. -->
+    <string name="update_title">Update uwuPromptr</string>
+    <string name="update_checking">Checking for a new version…</string>
+    <string name="update_newest">You have the newest version, %1$s.</string>
+    <string name="update_available">Version %1$s of the uwuPromptr app is out. You have %2$s.</string>
+    <string name="update_downloading">Downloading version %1$s…</string>
+    <string name="update_installing">Installing…</string>
+    <string name="update_allow_installs">To update itself, uwuPromptr needs permission to install apps. Turn on Allow from this source, then come back.</string>
+    <string name="update_offline">Could not reach the update server. Check your connection and try again.</string>
+    <string name="update_failed_download">The download did not finish. Check your connection and try again.</string>
+    <string name="update_failed_check">The download did not match the release on GitHub, so it was not installed. Try again later.</string>
+    <string name="update_failed_older">That file is not newer than the version you have, so it was not installed.</string>
+    <string name="update_failed_conflict">This copy of uwuPromptr was installed from somewhere else and cannot be updated in place. Uninstall it, then install the app from GitHub.</string>
+    <string name="update_failed_storage">There is not enough room on this phone to install the update. Free up some space and try again.</string>
+    <string name="update_failed">The update was not installed. Try again, or download it from GitHub.</string>
+    <string name="update_now">Update</string>
+    <string name="update_not_now">Not now</string>
+    <string name="update_ok">OK</string>
+    <string name="update_open_settings">Open settings</string>
+    <string name="update_try_again">Try again</string>
+    <string name="update_open_github">Open GitHub</string>
+</resources>

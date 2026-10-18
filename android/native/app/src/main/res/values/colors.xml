@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The prompter's stage in light mode is the brand colour, Classic by
+         default, so the splash and the first frame match it. -->
+    <color name="window_background">#CCFFCC</color>
+    <color name="colorPrimary">#1F6B3D</color>
+    <color name="colorPrimaryDark">#1F6B3D</color>
+    <color name="colorAccent">#1F6B3D</color>
+    <!-- Tints the small icon in an expanded notification's header. -->
+    <color name="notification_colour">#1F6B3D</color>
+</resources>

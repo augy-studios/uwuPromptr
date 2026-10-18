@@ -8,8 +8,21 @@
 .vercel
 
 # Nothing here needs a package manager, so anything that turns up is a tool's
-# working directory rather than part of the site.
+# working directory rather than part of the site. android/ has its own, and its
+# own .gitignore.
 node_modules/
+
+# Secrets, wherever one is saved by mistake: the Android signing key and its
+# passwords, Firebase's app config, and Firebase service account keys. *.apk is
+# deliberately not here: release/<version>/*.apk is committed.
+*.keystore
+*.jks
+*.p12
+*.pfx
+keystore.properties
+google-services.json
+*firebase-adminsdk*.json
+*-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
 
 # Editor and OS leavings.
 .DS_Store

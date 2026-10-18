@@ -1,0 +1,17 @@
+{
+  "name": "uwupromptr-android",
+  "private": true,
+  "description": "The uwuPromptr Android app: cue.uwuapps.org in Capacitor's WebView, plus the native features a web page cannot have.",
+  "scripts": {
+    "sync": "cap sync android",
+    "build": "powershell -ExecutionPolicy Bypass -File build-apk.ps1"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/push-notifications": "8.1.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

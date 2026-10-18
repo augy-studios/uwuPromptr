@@ -4,6 +4,7 @@
 // modals and the remote all read one state.
 
 import { clampSetting, getSettings, saveSettings, SETTING_RANGES } from "./storage.js";
+import { AppBridge } from "./app-bridge.js";
 
 export class Prompter {
   constructor({ viewport, text, stage, onChange }) {
@@ -32,6 +33,8 @@ export class Prompter {
     // sitting on a pause and still reading off this screen.
     this.keepAwake = false;
     this.wakeLockPending = false;
+    // Held by the Android app rather than the browser. See requestWakeLock.
+    this.nativeAwake = false;
 
     this.tick = this.tick.bind(this);
 
@@ -244,6 +247,16 @@ export class Prompter {
   // Nobody wants the screen to sleep mid-take. Unsupported browsers and a
   // refused request are both fine: the prompter carries on either way.
   async requestWakeLock() {
+    // The Android app's WebView has no Screen Wake Lock, so the app holds the
+    // screen on itself. It is never released by the page being hidden, so it
+    // needs no asking again on return.
+    if (AppBridge.has("keepAwake")) {
+      if (this.nativeAwake) return;
+      this.nativeAwake = true;
+      AppBridge.call("Cue", "keepAwake", { on: true }).catch(() => {});
+      return;
+    }
+
     if (!("wakeLock" in navigator) || this.wakeLock || this.wakeLockPending) return;
     if (document.visibilityState !== "visible") return;
     this.wakeLockPending = true;
@@ -278,6 +291,10 @@ export class Prompter {
   }
 
   releaseWakeLock() {
+    if (this.nativeAwake) {
+      this.nativeAwake = false;
+      AppBridge.call("Cue", "keepAwake", { on: false }).catch(() => {});
+    }
     if (!this.wakeLock) return;
     this.wakeLock.release().catch(() => {});
     this.wakeLock = null;

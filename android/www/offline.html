@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>uwuPromptr</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Shown by the app when it opens for the very first time with no connection.
+     After one visit the site's own service worker opens it offline instead.
+     Self-contained on purpose: nothing here may need the network. -->
+<style>
+  :root { color-scheme: light; --bg: #e4f7e4; --ink: #121815; --muted: #3b453f; --head: #1f6b3d;
+          --btn: #ccffcc; --border: rgba(18, 24, 21, .18); }
+  @media (prefers-color-scheme: dark) {
+    :root { color-scheme: dark; --bg: #0c100e; --ink: #eef2ef; --muted: #9aa7a0; --head: #bff5cf;
+            --btn: #24352a; --border: rgba(255, 255, 255, .14); }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         padding: 24px; background: var(--bg); color: var(--ink);
+         font-family: "Segoe UI", Roboto, system-ui, sans-serif; }
+  main { max-width: 22rem; text-align: center; }
+  h1 { font-size: 1.25rem; margin: 0 0 .5rem; color: var(--head); }
+  p { font-size: .95rem; line-height: 1.5; margin: 0 0 1.25rem; color: var(--muted); }
+  a { display: inline-block; font: inherit; padding: .7rem 1.4rem; border: 1px solid var(--border);
+      border-radius: 999px; background: var(--btn); color: var(--ink); text-decoration: none; }
+</style>
+</head>
+<body>
+  <main>
+    <h1>uwuPromptr needs a connection once</h1>
+    <p>The first time it opens, the app downloads the prompter. Connect to the internet,
+       then try again. After that it works with no connection at all.</p>
+    <a href="https://cue.uwuapps.org/">Try again</a>
+  </main>
+</body>
+</html>

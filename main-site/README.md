@@ -19,6 +19,15 @@ the [root README](../README.md).
   same network**, see below.
 - **Works offline.** Once it has been opened once, the prompter needs no
   connection to open, scroll, save, or edit.
+- **Edge Trays**, per `edge-tray-spec.md`. The top bar (the script and its
+  panels) and the bottom bar (the transport) each slide off their edge with
+  the tab beside them, and a side column holds settings, the mirror and focus
+  line toggles, fullscreen and theme. Each is remembered, the side column can
+  sit on either edge (Prompter settings > Layout), and while a tray is open
+  the script keeps clear of it.
+- **An Android app**, in `../android/`, which is this site plus a few native
+  extras. Everything app-only here is gated on `AppBridge.has()` and does
+  nothing in a browser.
 
 ## Keyboard
 
@@ -44,6 +53,11 @@ js/storage.js       scripts and settings, all in localStorage
 js/remote.js        both ends of the remote, over WebRTC
 js/qr.js            QR encoder, so pairing codes work with no network
 js/sw-update.js     the update prompt bar, per update-bar-spec.md
+js/edge-tray.js     the three Edge Trays, per edge-tray-spec.md
+js/app-bridge.js    the channel to the Android app; inert in a browser
+js/app-native.js    the Android app's buttons and settings
+js/app-update.js    new Android versions, offered in the update bar
+js/nearby.js        the Android app's offline phone-to-phone remote
 js/app.js           the prompter page
 js/remote-page.js   the remote page
 sw.js               service worker: caches the shell, and waits
@@ -51,7 +65,10 @@ check-precache.js   checks sw.js's list against what is on disk
 js/icons.test.mjs   checks every icon is centred on its viewBox
 index.html          the prompter
 remote.html         the remote, served at /remote by cleanUrls
-api/                Vercel serverless functions. Empty and unused.
+api/turn-credentials.js  short-lived TURN credentials, when a relay is set up
+api/app-release.js  the newest Android release, for the app's updater
+api/push/release.js GitHub webhook: the "new version" notification
+.well-known/assetlinks.json  the Android signing key, for links that open the app
 ```
 
 ## Where the data lives
@@ -91,9 +108,11 @@ that the prompter hung up.
 
 ## Environment
 
-**None.** There is nothing to configure in Vercel, no `.env` to create, and
-no secrets. The site is static files, it has no backend, and no code here
-reads an environment variable.
+**All optional.** The site is static files plus a few small functions, and
+every one of them works, or politely does nothing, without its variables.
+`.env.example` lists them: the TURN relay's, and the Android app's
+(`FIREBASE_SERVICE_ACCOUNT`, `GITHUB_WEBHOOK_SECRET`, `GITHUB_TOKEN`), which
+`../android/FIREBASE-SETUP.md` walks through.
 
 Two IDs are written into the HTML directly. Both are public, client-side
 identifiers rather than secrets, and there is no build step that could

@@ -15,6 +15,10 @@ import { hydrateIcons, openModal, closeModal } from "./ui.js";
 import { formatElapsed, pixelsPerSecond } from "./prompter.js";
 import { RemoteClient, isValidCode, normaliseCode, CODE_LENGTH } from "./remote.js";
 import { initUpdateBar } from "./sw-update.js";
+import { AppBridge } from "./app-bridge.js";
+import { NearbyClient, nearbyAvailable } from "./nearby.js";
+import { resetAppFeatures } from "./app-native.js";
+import { initAppUpdates } from "./app-update.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -189,14 +193,19 @@ function setStatus(status, message) {
   wasLive = live;
 }
 
-async function connect(code) {
+/**
+ * Connect to the prompter on `code`: over the network, or with `nearby`
+ * straight to a phone in the room (the Android app's offline remote). Both
+ * links speak the same messages, so everything after this is the same.
+ */
+async function connect(code, { nearby = false } = {}) {
   if (!isValidCode(code)) {
     setStatus("error", `A remote ID is ${CODE_LENGTH} characters.`);
     return;
   }
 
   client?.close();
-  client = new RemoteClient();
+  client = nearby ? new NearbyClient() : new RemoteClient();
 
   client.addEventListener("status", (e) => {
     const { status, message } = e.detail;
@@ -505,6 +514,9 @@ function wireControls() {
   el("connectBtn").addEventListener("click", () => {
     connect(normaliseCode(el("codeInput").value));
   });
+  el("nearbyConnectBtn").addEventListener("click", () => {
+    connect(normaliseCode(el("codeInput").value), { nearby: true });
+  });
 
   el("codeInput").addEventListener("input", (e) => {
     e.target.value = normaliseCode(e.target.value);
@@ -614,6 +626,17 @@ function boot() {
   }
 
   initUpdateBar();
+
+  // In the Android app: nothing the prompter page left on (full brightness,
+  // the volume keys) carries over here, and a phone without a network can
+  // still connect to one nearby.
+  resetAppFeatures();
+  initAppUpdates();
+  AppBridge.ready(5000).then(() => {
+    const nearby = nearbyAvailable();
+    el("nearbyConnectBtn").hidden = !nearby;
+    el("nearbyConnectNote").hidden = !nearby;
+  });
 }
 
 if (document.readyState === "loading") {

@@ -24,9 +24,17 @@ import {
 import { RemoteHost, generateCode, isValidCode } from "./remote.js";
 import { qrToSvg } from "./qr.js";
 import { initUpdateBar } from "./sw-update.js";
+import { initEdgeTrays, getTraySide, setTraySide } from "./edge-tray.js";
+import { AppBridge } from "./app-bridge.js";
+import { initAppFeatures, toggleImmersive } from "./app-native.js";
+import { initAppUpdates } from "./app-update.js";
+import { NearbyHost, nearbyAvailable } from "./nearby.js";
 
 let prompter = null;
 let host = null;
+// The offline remote, in the Android app: a phone linked straight to this one
+// over Bluetooth and Wi-Fi Direct, on the same code as the web remote.
+let nearbyHost = null;
 let hostCode = null;
 // Stopped with the Stop button rather than never started. Reopening the panel
 // then leaves it stopped, because somebody who switched it off did not switch
@@ -400,12 +408,34 @@ function syncSettingsModal(state) {
     btn.disabled = prompter.isDefault(btn.dataset.reset);
   });
 
+  // The same toggle can be in the modal and in the side tray.
   for (const name of ["flipX", "flipY", "focusLine", "timer"]) {
-    const btn = document.querySelector(`[data-toggle="${name}"]`);
-    if (!btn) continue;
-    btn.classList.toggle("active", Boolean(state[name]));
-    btn.setAttribute("aria-pressed", String(Boolean(state[name])));
+    document.querySelectorAll(`[data-toggle="${name}"]`).forEach((btn) => {
+      btn.classList.toggle("active", Boolean(state[name]));
+      btn.setAttribute("aria-pressed", String(Boolean(state[name])));
+    });
   }
+}
+
+/* Which edge the side tray is on, from the settings modal's Layout group. */
+function wireLayout() {
+  const sync = () => {
+    const side = getTraySide();
+    document.querySelectorAll("#traySideToggle [data-side]").forEach((btn) => {
+      const on = btn.dataset.side === side;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-pressed", String(on));
+    });
+  };
+
+  el("traySideToggle").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-side]");
+    if (!btn) return;
+    setTraySide(btn.dataset.side);
+    sync();
+  });
+
+  sync();
 }
 
 function wireTransport() {
@@ -469,13 +499,28 @@ function wireTransport() {
 
   el("fullscreenBtn").addEventListener("click", toggleFullscreen);
   document.addEventListener("fullscreenchange", () => {
-    const span = document.querySelector("#fullscreenBtn [data-icon]");
-    span.setAttribute("data-icon", document.fullscreenElement ? "exitFullscreen" : "fullscreen");
-    hydrateIcons(el("fullscreenBtn"));
+    showFullscreen(Boolean(document.fullscreenElement));
   });
 }
 
+function showFullscreen(on) {
+  const span = document.querySelector("#fullscreenBtn [data-icon]");
+  span.setAttribute("data-icon", on ? "exitFullscreen" : "fullscreen");
+  hydrateIcons(el("fullscreenBtn"));
+  const label = `${on ? "Exit fullscreen" : "Fullscreen"} (F)`;
+  el("fullscreenBtn").setAttribute("aria-label", label);
+  el("fullscreenBtn").setAttribute("title", label);
+}
+
 function toggleFullscreen() {
+  // In the Android app the app hides its own bars instead, since the
+  // Fullscreen API is unreliable in a WebView.
+  const app = toggleImmersive();
+  if (app !== null) {
+    showFullscreen(app);
+    return;
+  }
+
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
   } else {
@@ -744,6 +789,10 @@ async function startRemote() {
       return;
     }
 
+    // A phone is connected nearby. What the web side is doing does not change
+    // that, and the panel keeps saying so.
+    if (nearbyHost?.status === "connected" && status !== "connected") return;
+
     setRemoteStatus(status, message);
     if (status === "connected") {
       broadcastScript();
@@ -759,7 +808,13 @@ async function startRemote() {
     await host.start(hostCode);
   } catch (cause) {
     host = null;
-    setRemoteStatus("error", "Could not load the remote control library. Check your connection.");
+    // The code stands even so: a phone nearby can still use it, offline.
+    setRemoteStatus(
+      "error",
+      nearbyAvailable()
+        ? "Could not load the remote control library. Check your connection, or connect a phone nearby below."
+        : "Could not load the remote control library. Check your connection."
+    );
     console.warn("remote host failed to start:", cause);
   }
 
@@ -771,6 +826,7 @@ async function startRemote() {
 function stopRemote() {
   host?.close();
   host = null;
+  stopNearby();
   hostCode = null;
   setRemoteStatus("idle");
   el("remoteCode").textContent = "------";
@@ -787,7 +843,9 @@ function stopRemote() {
  * short of reloading the page, which is what this used to do.
  */
 function syncRemoteControls() {
-  const running = Boolean(host);
+  // Offline in the app, the web side has failed to start but a nearby phone
+  // can still connect on the code, so the code's controls stay live.
+  const running = Boolean(host || nearbyHost);
   el("remoteStart").hidden = running;
   el("remoteStop").hidden = !running;
   el("remoteCopy").disabled = !running;
@@ -808,6 +866,7 @@ async function regenerateRemoteCode() {
   // Cleared, or startRemote would reuse the very code being given up.
   setStoredHostCode("");
   await startRemote();
+  restartNearby();
   toast("New remote ID");
 }
 
@@ -841,6 +900,7 @@ async function recoverFromTakenCode() {
 
   try {
     await startRemote();
+    restartNearby();
   } finally {
     recoveringTakenCode = false;
   }
@@ -860,17 +920,19 @@ async function recoverFromTakenCode() {
  * underneath it and could not return on the ID it was given.
  */
 async function retireRemoteCode() {
-  if (retiringRemoteCode || !host) return;
+  if (retiringRemoteCode || (!host && !nearbyHost)) return;
   retiringRemoteCode = true;
 
   try {
-    host.close();
+    host?.close();
     host = null;
     hostCode = null;
     // As in regenerateRemoteCode: the stored code is the thing being retired,
     // so it has to go before a new one is published.
     setStoredHostCode("");
     await startRemote();
+    // The nearby side advertises under the code too, so it moves with it.
+    restartNearby();
     toast("Remote disconnected. New ID.");
   } finally {
     retiringRemoteCode = false;
@@ -891,7 +953,7 @@ function handleRemoteMessage(message) {
     broadcastState(prompter.state());
     // A remote that connects while the editor is open has to arrive locked,
     // not find out at the next keystroke.
-    host?.send({ type: "editing", open: editingHere });
+    sendToRemotes({ type: "editing", open: editingHere });
     return;
   }
 
@@ -921,8 +983,15 @@ function handleRemoteMessage(message) {
   }
 }
 
+/* Whichever links are open: the web remote, the nearby one, or both. Each
+   sends only while it has a remote connected. */
+function sendToRemotes(message) {
+  host?.send(message);
+  nearbyHost?.send(message);
+}
+
 function broadcastState(state) {
-  if (!host) return;
+  if (!host && !nearbyHost) return;
   // The colours this screen is in, so the remote's copy of it matches this
   // device rather than whatever theme the phone happens to be set to.
   const theme = COLOR_THEMES.find((t) => t.id === getStoredColorTheme()) || COLOR_THEMES[0];
@@ -930,7 +999,7 @@ function broadcastState(state) {
     mode: document.documentElement.getAttribute("data-mode") === "dark" ? "dark" : "light",
     brand: theme.hex,
   };
-  host.send({ type: "state", payload: { ...state, look } });
+  sendToRemotes({ type: "state", payload: { ...state, look } });
 }
 
 /* The revision counter behind the `edit` message. It counts changes made on
@@ -948,7 +1017,7 @@ function bumpScriptRev() {
 
 function broadcastScript() {
   const script = getActiveScript();
-  host?.send({ type: "script", name: script.name, body: script.body, rev: scriptRev });
+  sendToRemotes({ type: "script", name: script.name, body: script.body, rev: scriptRev });
 }
 
 /* Whether the editor is open on this device. The remote covers itself while it
@@ -959,7 +1028,7 @@ let editingHere = false;
 
 function broadcastEditing(open) {
   editingHere = open;
-  host?.send({ type: "editing", open });
+  sendToRemotes({ type: "editing", open });
 }
 
 /**
@@ -980,8 +1049,8 @@ function applyRemoteEdit(message) {
   // send is refused for the same reason.
   if (editingHere) {
     broadcastScript();
-    host?.send({ type: "edit-refused", reason: "editing" });
-    host?.send({ type: "editing", open: true });
+    sendToRemotes({ type: "edit-refused", reason: "editing" });
+    sendToRemotes({ type: "editing", open: true });
     return;
   }
 
@@ -990,7 +1059,7 @@ function applyRemoteEdit(message) {
     // whatever was typed here in the meantime, so it is refused and the remote
     // is told what the script actually says now.
     broadcastScript();
-    host?.send({ type: "edit-refused", reason: "stale" });
+    sendToRemotes({ type: "edit-refused", reason: "stale" });
     return;
   }
 
@@ -1022,8 +1091,76 @@ function openRemotePanel() {
   syncRemoteControls();
 }
 
+/* ---- the offline remote (Android app only) ---- */
+
+function renderNearbyStatus(status, message) {
+  const live = status === "waiting" || status === "connected" || status === "connecting";
+  el("nearbyHostLabel").textContent = live ? "Stop connecting nearby" : "Let a nearby phone connect";
+
+  const text = {
+    connecting: "Starting.",
+    waiting: "Waiting for a nearby phone. Bluetooth has to be on on both.",
+    connected: "A nearby phone is connected.",
+    error: message || "Connecting without wifi failed.",
+  }[status];
+  el("nearbyHostStatus").textContent = text || "";
+  el("nearbyHostStatus").hidden = !text;
+}
+
+async function startNearby() {
+  // The same code as the web remote, so the ID on screen is the one to enter
+  // either way. A prompter that was stopped by hand starts again for this.
+  if (!hostCode) {
+    stoppedByHand = false;
+    await startRemote();
+  }
+
+  nearbyHost?.close();
+  const link = new NearbyHost();
+  nearbyHost = link;
+
+  link.addEventListener("status", (e) => {
+    if (nearbyHost !== link) return;
+    const { status, message } = e.detail;
+    renderNearbyStatus(status, message);
+
+    if (status === "connected") {
+      setRemoteStatus("connected");
+      return;
+    }
+    // Not connected nearby: the panel says what the web side is doing, unless
+    // that is nothing and this side is waiting.
+    if (host?.status === "connected") return;
+    if (status === "waiting") setRemoteStatus("waiting");
+    else setRemoteStatus(host ? host.status : "idle");
+  });
+  link.addEventListener("message", (e) => handleRemoteMessage(e.detail));
+
+  syncRemoteControls();
+  await link.start(hostCode);
+}
+
+function stopNearby() {
+  const link = nearbyHost;
+  nearbyHost = null;
+  link?.close();
+  renderNearbyStatus("idle");
+  syncRemoteControls();
+}
+
+/* The code changed: advertise under the new one, if this side was on. */
+function restartNearby() {
+  if (nearbyHost) startNearby();
+}
+
 function wireRemote() {
   el("remoteBtn").addEventListener("click", openRemotePanel);
+
+  el("nearbyHostBtn").addEventListener("click", () => {
+    const status = nearbyHost?.status;
+    if (status === "waiting" || status === "connected" || status === "connecting") stopNearby();
+    else startNearby();
+  });
 
   el("remoteStop").addEventListener("click", () => {
     stoppedByHand = true;
@@ -1065,6 +1202,7 @@ function wireRemote() {
 function boot() {
   initTheme();
   hydrateIcons();
+  initEdgeTrays();
   updateThemeButtonIcon();
   buildThemeModal();
   wireModals();
@@ -1072,13 +1210,15 @@ function boot() {
   prompter = new Prompter({
     viewport: el("viewport"),
     text: el("scriptText"),
-    stage: document.querySelector(".stage"),
+    // The focus arrows hang off the reading area, between the trays.
+    stage: el("reading"),
     onChange: syncToolbar,
   });
 
   wireScripts();
   wireEditor();
   wireTransport();
+  wireLayout();
   wireKeyboard();
   wireRemote();
   // The resting state, so the button's name matches its grey light from the
@@ -1095,10 +1235,21 @@ function boot() {
   setInterval(() => {
     const state = prompter.state();
     el("timer").textContent = formatElapsed(state.elapsed);
-    if (host) broadcastState(state);
+    if (host || nearbyHost) broadcastState(state);
   }, STATE_INTERVAL_MS);
 
   initUpdateBar();
+
+  // The Android app's extras. Each waits for the app to say what it can do,
+  // and in a browser none of them does anything.
+  initAppFeatures({
+    onPlayPause: () => prompter.toggle(),
+    prompterWantsAwake: () => prompter.wantsWakeLock(),
+  });
+  initAppUpdates();
+  AppBridge.ready(5000).then(() => {
+    el("nearbyBlock").hidden = !nearbyAvailable();
+  });
 }
 
 if (document.readyState === "loading") {

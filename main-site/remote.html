@@ -20,6 +20,14 @@
             var c = localStorage.getItem(k + ".colorTheme") || "classic";
             document.documentElement.setAttribute("data-mode", m);
             document.documentElement.setAttribute("data-color-theme", c);
+
+            // The Android app tags its user agent, which is there before the
+            // bridge answers. It hides the status bar, so nothing needs a top
+            // inset.
+            if (/uwuPromptrApp\/\d+/.test(navigator.userAgent)) {
+                document.documentElement.setAttribute("data-app", "android");
+                document.documentElement.setAttribute("data-statusbar", "hidden");
+            }
         })();
     </script>
 
@@ -82,6 +90,15 @@
                 autocapitalize="characters" spellcheck="false" maxlength="6" placeholder="ABC123"
                 aria-label="Remote ID">
             <button class="btn btn-primary" id="connectBtn" type="button">Connect</button>
+            <!-- Android app only, with Google Play services: straight to a
+                 prompter phone nearby, with no network at all. -->
+            <button class="btn" id="nearbyConnectBtn" type="button" hidden>
+                <span data-icon="nearby"></span>Connect nearby, without wifi
+            </button>
+            <p class="mode-note" id="nearbyConnectNote" hidden>
+                For when there is no wifi: the prompter phone needs the app too, with
+                Let a nearby phone connect turned on in its remote panel.
+            </p>
             <p class="mode-note" id="connectStatus" hidden></p>
             <div class="remote-status">
                 <span class="status-dot" id="statusDot"></span>

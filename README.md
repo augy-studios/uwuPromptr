@@ -20,13 +20,21 @@ control over speed and font size and a remote that needs no server of ours.
 
 ```text
 main-site/                 the app, deployed as a static site on Vercel
+android/                   the Android app: the site in Capacitor, plus native extras
+release/                   the signed Android APKs, one folder per version
 turn-server/               optional coturn relay, for pairing across networks
 uwuapps-theme.md           theme system spec, shared across UwU Apps
 uwuapps-retrofit-time-mode.md  how time-based mode was added to it
 update-bar-spec.md         the update prompt bar spec
+edge-tray-spec.md          the Edge Tray spec
+android-app-spec.md        how UwU Apps sites become Android apps
+STUN-p2p-spec.md           peer-to-peer pairing without a server of ours
 CODE_OF_CONDUCT.md
 LICENSE                    MIT
 ```
+
+`android/README.md` covers the Android app: what it adds, its permissions, and building the
+signed APK with one command.
 
 `main-site/README.md` covers the app itself: what is in each file, the
 keyboard shortcuts, how the theme works, and what to do before a deploy.
@@ -47,6 +55,10 @@ cover. When one of them changes, the app follows it, not the other way round.
 - **`update-bar-spec.md`** defines the bar that appears when a new version
   has downloaded and is waiting. The rule the whole thing rests on is that a
   new service worker never activates on its own.
+- **`edge-tray-spec.md`** defines the Edge Tray. The prompter has three: the
+  top bar and the bottom bar each slide off their edge, and a side column
+  holds what fits in neither.
+- **`android-app-spec.md`** is the pattern `android/` follows.
 
 ## Running it locally
 

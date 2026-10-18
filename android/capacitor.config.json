@@ -1,0 +1,22 @@
+{
+  "appId": "org.uwuapps.cue",
+  "appName": "uwuPromptr",
+  "webDir": "www",
+  "server": {
+    "url": "https://cue.uwuapps.org",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "path": "native",
+    "appendUserAgent": "uwuPromptrApp/1"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["alert", "sound"]
+    }
+  }
+}

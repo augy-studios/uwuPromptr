@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The status bar draws this from its alpha alone: a screen on a stand with
+     three lines of script cut out of it, so it reads as a shape and not a
+     white square. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M4,3h16a2,2 0,0 1,2 2v10a2,2 0,0 1,-2 2h-6v2h3v2H7v-2h3v-2H4a2,2 0,0 1,-2 -2V5a2,2 0,0 1,2 -2z M6,6.5v2h12v-2z M6,10v2h12v-2z M6,13.5v1.5h8v-1.5z" />
+</vector>
