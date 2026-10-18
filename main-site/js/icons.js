@@ -46,6 +46,10 @@ export const icons = {
   // Full brightness: a phone giving off light. Not the sun, which is the theme.
   brightness: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M3 12h2M19 12h2M4.6 6.6l1.6 1.2M19.4 6.6l-1.6 1.2M4.6 17.4l1.6-1.2M19.4 17.4l-1.6-1.2"/></svg>`,
   bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15.25v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 19.75h4"/></svg>`,
+  // Desktop app only. Keep on top: a pushpin, holding the window above the rest.
+  pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8"/><path d="M9.5 3v6.5L7 13h10l-2.5-3.5V3"/><path d="M12 13v8"/></svg>`,
+  // Desktop app only. Shortcuts in other apps: a keyboard.
+  keyboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/></svg>`,
   // The offline remote: a phone sending out waves either side.
   nearby: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9.5" y="6" width="5" height="12" rx="1.2"/><path d="M6.5 9.5a3.5 3.5 0 0 0 0 5M17.5 9.5a3.5 3.5 0 0 1 0 5M4 7a7 7 0 0 0 0 10M20 7a7 7 0 0 1 0 10"/></svg>`,
 };

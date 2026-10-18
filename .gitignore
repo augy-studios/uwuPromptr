@@ -24,6 +24,16 @@ google-services.json
 *firebase-adminsdk*.json
 *-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
 
+# The desktop installers. desktop/build-linux.sh copies them into
+# release/<version>/ beside the APK, but at 80 to 110 MB each GitHub refuses
+# them: they live only on the GitHub release.
+*.deb
+*.AppImage
+*.msi
+*.dmg
+*-setup.exe
+release/**/latest*.yml
+
 # Editor and OS leavings.
 .DS_Store
 Thumbs.db

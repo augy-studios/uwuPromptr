@@ -28,6 +28,9 @@ the [root README](../README.md).
 - **An Android app**, in `../android/`, which is this site plus a few native
   extras. Everything app-only here is gated on `AppBridge.has()` and does
   nothing in a browser.
+- **A desktop app** for Windows, macOS and Linux, in `../desktop/`, the same
+  way. Its extras are gated on the method they need in `window.cueDesktop`
+  (`js/app-desktop.js`), and do nothing in a browser either.
 
 ## Keyboard
 
@@ -58,6 +61,8 @@ js/app-bridge.js    the channel to the Android app; inert in a browser
 js/app-native.js    the Android app's buttons and settings
 js/app-update.js    new Android versions, offered in the update bar
 js/nearby.js        the Android app's offline phone-to-phone remote
+js/app-desktop.js   the desktop app's buttons, settings and title bar colour;
+                    inert in a browser
 js/app.js           the prompter page
 js/remote-page.js   the remote page
 sw.js               service worker: caches the shell, and waits

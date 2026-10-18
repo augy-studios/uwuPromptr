@@ -51,9 +51,10 @@ function setPressed(button, on) {
 /**
  * A button in the side tray, before the theme button, so the global actions
  * read settings, then the app's, then theme. The tray's stagger has a line for
- * every child it can hold, and its `inert` covers these too.
+ * every child it can hold, and its `inert` covers these too. The desktop app's
+ * buttons (app-desktop.js) are added the same way.
  */
-function addTrayButton({ id, icon, label, pressed }) {
+export function addTrayButton({ id, icon, label, pressed }) {
   const button = document.createElement("button");
   button.className = "glass-btn";
   button.type = "button";

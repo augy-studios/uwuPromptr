@@ -1,0 +1,175 @@
+# Builds the desktop apps (desktop/) for Windows, macOS and Linux.
+#
+#   A push changing desktop/**    builds all three, kept as this run's artifacts
+#                                 for 30 days. Nothing is released.
+#   Run by hand, with a tag       the same, uploaded to that release. No release
+#                                 of that tag yet: a draft is made. Nobody's app
+#                                 sees a draft, so nothing updates until it is
+#                                 published (add the APK first).
+#   A release published           builds from its tag and uploads, unless a hand
+#                                 run already put every latest*.yml on it.
+#
+# Each system builds only its own installers: a Mac app only on a Mac, an .msi
+# only on Windows. The installers are unsigned (desktop-app-spec.md section 9.5).
+
+name: Build desktop apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - ".github/workflows/build-desktop.yml"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to upload to, e.g. android-v1.0.0. Leave empty to only build."
+        required: false
+        type: string
+  release:
+    types: [published]
+
+concurrency:
+  group: desktop-${{ github.ref }}-${{ github.event.release.tag_name || inputs.tag || 'build' }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    name: Decide what to build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      tag: ${{ steps.plan.outputs.tag }}
+      ref: ${{ steps.plan.outputs.ref }}
+    steps:
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          tag=""
+          ref="$GITHUB_REF"
+          build=true
+
+          if [ "$EVENT" = release ]; then
+            tag="$RELEASE_TAG"
+            ref="refs/tags/$tag"
+          elif [ "$EVENT" = workflow_dispatch ]; then
+            tag="$INPUT_TAG"
+          fi
+
+          if [ -n "$tag" ] && ! [[ "$tag" =~ ^android-v[0-9]+(\.[0-9]+){0,3}$ ]]; then
+            echo "::error::The tag must look like android-v1.0.0, the tag the Android app shares."
+            exit 1
+          fi
+
+          if [ "$EVENT" = release ]; then
+            # A hand run already put the installers on this release.
+            names="$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+            if grep -qx latest.yml <<<"$names" && grep -qx latest-mac.yml <<<"$names" && grep -qx latest-linux.yml <<<"$names"; then
+              echo "The release already has every latest*.yml. Nothing to build."
+              build=false
+            fi
+          fi
+
+          if [ "$EVENT" = workflow_dispatch ] && [ -n "$tag" ] && ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft --target "$GITHUB_SHA" \
+              --title "uwuPromptr ${tag#android-v}" \
+              --notes "Desktop installers from the Build desktop apps workflow. Add the APK and the release notes (release/README.md), then publish."
+          fi
+
+          {
+            echo "build=$build"
+            echo "tag=$tag"
+            echo "ref=$ref"
+          } >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            script: build:win
+            upload: dist/*-setup.exe dist/*.msi dist/*.blockmap dist/latest.yml
+            artifacts: |
+              desktop/dist/*-setup.exe
+              desktop/dist/*.msi
+              desktop/dist/*.blockmap
+              desktop/dist/latest.yml
+          - name: macOS
+            os: macos-latest
+            script: build:mac
+            upload: dist/*.dmg dist/*.zip dist/*.blockmap dist/latest-mac.yml
+            artifacts: |
+              desktop/dist/*.dmg
+              desktop/dist/*.zip
+              desktop/dist/*.blockmap
+              desktop/dist/latest-mac.yml
+          - name: Linux
+            os: ubuntu-latest
+            script: build:linux
+            upload: dist/*.deb dist/*.AppImage dist/latest-linux.yml
+            artifacts: |
+              desktop/dist/*.deb
+              desktop/dist/*.AppImage
+              desktop/dist/latest-linux.yml
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    env:
+      # No signing certificate: don't go looking for one.
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.ref }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: The version matches the tag
+        if: needs.plan.outputs.tag != ''
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "android-v$version" != "$TAG" ]; then
+            echo "::error::desktop/package.json says $version, the tag says $TAG. Installed apps read the version from latest*.yml, so raise package.json (and the lock) to match."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      - run: npm run ${{ matrix.script }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: uwupromptr-desktop-${{ matrix.name }}
+          path: ${{ matrix.artifacts }}
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload to the release
+        if: needs.plan.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: gh release upload "$TAG" ${{ matrix.upload }} --clobber --repo "$GITHUB_REPOSITORY"

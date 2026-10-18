@@ -88,6 +88,8 @@ desktop/
   glance.js          the tray tooltip / menu-bar text / Dock badge; Jump List, Dock menu,
                      taskbar thumbnail buttons
   location.js        Linux only: where the computer is, from its Wi-Fi
+  links.js           uwu:// claimed, and other UwU apps' links passed on to them (§7.5);
+                     the same file in every UwU desktop app
   offline.html       the first-launch-offline page
   build/             icon.png (1024 px), tray.png + tray@2x.png + tray@3x.png
   build-linux.sh     build the Linux installers on any Linux machine
@@ -137,7 +139,7 @@ committed**: GitHub refuses files over 100 MB, so they live only on the GitHub r
     "appId": "org.uwuapps.<id>",
     "productName": "<App>",
     "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "updater.js", "widgets.js", "glance.js", "location.js",
+    "files": ["main.js", "preload.js", "updater.js", "widgets.js", "glance.js", "location.js", "links.js",
               "offline.html", "titlebar.html", "titlebar.js", "titlebar-preload.js",
               "build/tray.png", "build/tray@2x.png", "build/tray@3x.png", "build/icon.png"],
     "artifactName": "<app>-${version}${suffix}.${ext}",
@@ -194,18 +196,22 @@ committed**: GitHub refuses files over 100 MB, so they live only on the GitHub r
    installed app, and pins and groups it wrongly.
 3. `open-url` (macOS links) and `activate` (Dock click with the window hidden) handlers, before
    `ready`: macOS can send `open-url` before the app is ready.
-4. `app.setAsDefaultProtocolClient("uwu")` (with the script path when `process.defaultApp`).
-5. `whenReady`:
-   1. The permission handlers (§10).
-   2. First run of an installed app only: start at sign-in on, remembered as chosen (§7.4).
-   3. `createWindow()`.
-   4. **Every module whose functions the tray's menu calls is initialised before the tray
+4. `whenReady`:
+   1. Started only to carry another UwU app's `uwu://` link: hand it on and `app.quit()`,
+      before anything else (§7.5).
+   2. `links.init({ name })`: note which app holds `uwu://`, then
+      `app.setAsDefaultProtocolClient("uwu")` (with the script path when
+      `process.defaultApp`). Not awaited.
+   3. The permission handlers (§10).
+   4. First run of an installed app only: start at sign-in on, remembered as chosen (§7.4).
+   5. `createWindow()`.
+   6. **Every module whose functions the tray's menu calls is initialised before the tray
       is made.** The menu is built at once and calls them; a module that throws because it
       isn't initialised throws in the main process, where an uncaught error stops the whole
       app at start. Make each module's functions return harmless defaults until `init()`.
-   5. `createTray()`, which also starts the updater.
-   6. Widgets: `init()`, then `restore()`.
-6. `before-quit` sets `quitting = true`; `window-all-closed` does nothing (the tray keeps the
+   7. `createTray()`, which also starts the updater.
+   8. Widgets: `init()`, then `restore()`.
+5. `before-quit` sets `quitting = true`; `window-all-closed` does nothing (the tray keeps the
    app alive).
 
 ### 3.3 The window
@@ -519,25 +525,65 @@ data deserves (a minute for live alerts), and stop when every alert kind is off.
   `process.execPath` changes every launch), else `process.execPath`. "Is it on" is whether the
   file exists.
 
-### 7.5 `uwu://<id>/` links
+### 7.5 `uwu://<id>/` links, shared between the apps
 
-- Windows and Linux give a URL scheme to **one** app, unlike Android, which shares `uwu://`
-  out by host. The desktop app answers every `uwu://` link and opens only its own host;
-  anything else just shows the window. If two UwU Apps ever both want `uwu://` on the desktop,
-  they need one shared handler passing each link on by its host.
+**Android routes by host; the desktop can't.** On Android each app's intent filter claims
+`uwu` **with its own `android:host`**, and the phone sends each link to the right app.
+Windows (the registry's `HKCU\Software\Classes\uwu`), macOS (Launch Services) and Linux
+(`x-scheme-handler/uwu`) give a URL scheme to exactly **one** app, with no way to say "only
+this host". Two UwU desktop apps that both just register `uwu://` fight over it: each takes it
+back at every start, and whichever opened last gets every link, its own and the other's.
+
+So every UwU desktop app **passes on the links that aren't its own**, in `links.js`, the
+same file in every app (only the name given to `init()` differs). The reference is
+uwuPromptr's `desktop/links.js` (github.com/augy-studios/uwuPromptr): copy it as is. It reads
+and writes through `require("./settings")` (`readSettings`, `writeSettings`, §7.1); an app
+that keeps those two in `main.js` moves them into `settings.js` first. In outline:
+
+1. **At every start, after `ready`**: find which app holds `uwu://` now, and if it isn't this
+   app, keep it in `settings.json` as `linkHandoff`. Then claim `uwu://` for this app.
+2. **A link for this app's host** opens here, as below.
+3. **A link for any other host** goes to the `linkHandoff` app, and this window stays where it
+   was. Nobody to hand it to (nothing recorded, or it was this app): show the window, as before.
+4. **Started only to carry another app's link** (not running, and the start link isn't this
+   app's): hand it over and quit before making the window or the tray.
+
+With two apps installed, whichever started last holds the scheme and hands the other its
+links, so every link opens the app it's for, as on a phone. An app without `links.js` still
+takes the scheme when it starts and keeps other apps' links to itself, so **every UwU desktop
+app needs it**; the ones that have it work with each other at once.
+
+| | Which app holds `uwu://` | How a link is handed over |
+|---|---|---|
+| Windows | `reg query HKCU\Software\Classes\uwu\shell\open\command /ve`, then `HKLM\…`: the command line, kept whole as `{ command }` | Split it (quoted parts kept whole, backslashes left alone), `%1` (or `%L`) replaced by the link, appended if there's none; `spawn` the first part with the rest |
+| macOS | `app.getApplicationInfoForProtocol("uwu://")` → `{ app: info.path }`, the `.app` bundle | `spawn("/usr/bin/open", ["-a", app, link])` |
+| Linux | `xdg-mime query default x-scheme-handler/uwu` → `{ desktop: "<name>.desktop" }` | Read `Exec=` from `[Desktop Entry]` in `$XDG_DATA_HOME/applications`, then each of `$XDG_DATA_DIRS` (default `/usr/local/share:/usr/share`); `%u %U %f %F` → the link, other `%x` codes dropped, `%%` → `%`, `\"` `` \` `` `\$` `\\` unescaped in quotes; `spawn` it |
+
+- **"Is it this app?"**: the handler, as JSON in lower case, contains the app's own name
+  (`init({ name: "<app>" })`, as in its install folder, `.app` and `.desktop` file) or
+  `process.execPath`. Checked both when recording and before handing over, so a stale record
+  pointing at another copy of this app can never send a link round in a loop.
+- `spawn` with `detached: true`, `stdio: "ignore"`, `.unref()`, and an `error` handler: an
+  app uninstalled since it was recorded is no reason to crash. The link is one argument, never
+  a shell string.
+- Only `uwu://` links ever reach `passOn`; this app's own host never does.
+
+Opening this app's own links:
+
 - Map links exactly as the Android app does: the site's short links by path
   (`uwu://<id>/go/<code>`), anything else as the site's `#address`
   (`uwu://<id>/<thing>` → `https://<host>/#<thing>`), `uwu://<id>/` alone to the home page.
-  Accept only `^[\w\-./,~%]*$` in the path.
+  Accept only `^[\w\-./,~%]*$` in the path. (A site with real pages rather than a hash router
+  maps them as its Android `pageFor` does.)
 - **Where links arrive**: Windows and Linux in `argv` (`process.argv` at first launch,
   `second-instance`'s `argv` later); macOS as `open-url`, which can come before `ready` (keep
   it as the start link) or while running.
-- **Registering**: `app.setAsDefaultProtocolClient("uwu")` at every start. On Windows that
-  writes the per-user registry, so **links work once the app has been opened once** (the
-  `.exe` installer opens it when it finishes; after the `.msi`, open it yourself). From source
-  (`process.defaultApp`), pass `process.execPath` and the script path, or Windows starts
-  Electron without the app. Linux: the `.deb`'s menu entry declares it (`protocols`); an
-  AppImage only once integrated into the menu (AppImageLauncher, Gear Lever).
+- **Registering**: `app.setAsDefaultProtocolClient("uwu")`, from `links.init()`, at every
+  start. On Windows that writes the per-user registry, so **links work once the app has been
+  opened once** (the `.exe` installer opens it when it finishes; after the `.msi`, open it
+  yourself). From source (`process.defaultApp`), pass `process.execPath` and the script path,
+  or Windows starts Electron without the app. Linux: the `.deb`'s menu entry declares it
+  (`protocols`); an AppImage only once integrated into the menu (AppImageLauncher, Gear Lever).
 - A link to a `#address` while the site is open sets `location.hash` rather than reloading:
   the site's router must handle `hashchange`.
 
@@ -884,6 +930,13 @@ The failures met building the app, by where they show up.
   bare Electron.
 - Expecting `uwu://` links before the app has run once (Windows, `.msi`), or from a
   non-integrated AppImage: nothing opens.
+- Two UwU desktop apps registering `uwu://` without `links.js`: whichever opened last gets
+  every link, and the other app's links open the wrong app (§7.5).
+- The handler recorded *after* `setAsDefaultProtocolClient`: it's always this app, and
+  nothing is ever passed on. Look first, then claim.
+- Handing a link to a recorded app without checking it isn't this app (another copy, an old
+  install path): the link goes round in a loop.
+- Splitting a Windows command line with `.desktop` escaping: `C:\…` loses its backslashes.
 - `did-fail-load` treating `-3` (aborted) as offline: the offline page replaces a real
   navigation.
 - Linux autostart pointing at `process.execPath` for an AppImage: a path that's gone by the
@@ -921,8 +974,8 @@ The failures met building the app, by where they show up.
 - [ ] App id, short id, host, product name, user agent tag decided (§0); repository public
 - [ ] `package.json`: `files` lists every file; `electron-updater` in `dependencies`;
       artifact names; `publish` generic at `releases/latest/download`; macOS location strings
-- [ ] `main.js`: single-instance lock, `setAppUserModelId`, protocol client, permission
-      handlers, modules initialised before the tray
+- [ ] `main.js`: single-instance lock, `setAppUserModelId`, `links.js` (look, then claim
+      `uwu://`; pass on other hosts), permission handlers, modules initialised before the tray
 - [ ] Window: frameless with the app's title bar, the site in a `WebContentsView`,
       `backgroundThrottling: false`, background colours, maximised `ready-to-show`, bounds kept
 - [ ] Title bar: every control, drag regions, macOS padding, theme colour with contrast
@@ -947,6 +1000,8 @@ The failures met building the app, by where they show up.
 - [ ] Notifications arrive with the window hidden, and their clicks open the right page
 - [ ] Start at sign-in on from the first run; turning it off sticks
 - [ ] A `uwu://<id>/` link opens the right page, with the app closed and open
+- [ ] With another UwU desktop app installed: open this app last, and the other app's
+      `uwu://` link opens the other app (with this one closed, too)
 - [ ] Widgets: add, move, resize, pin, close (gone), quit and restart (back where they were)
 - [ ] Glance: tooltip, macOS title and badge, Jump List, Dock menu, thumbnail buttons
 - [ ] Location: allowed on Windows and macOS; on Linux via Wi-Fi; refusals explained

@@ -28,6 +28,7 @@ import { initEdgeTrays, getTraySide, setTraySide } from "./edge-tray.js";
 import { AppBridge } from "./app-bridge.js";
 import { initAppFeatures, toggleImmersive } from "./app-native.js";
 import { initAppUpdates } from "./app-update.js";
+import { initDesktopFeatures } from "./app-desktop.js";
 import { NearbyHost, nearbyAvailable } from "./nearby.js";
 
 let prompter = null;
@@ -1247,6 +1248,17 @@ function boot() {
     prompterWantsAwake: () => prompter.wantsWakeLock(),
   });
   initAppUpdates();
+
+  // The desktop app's extras, which answer at once: window.cueDesktop is there
+  // before this page's scripts run. Nothing here in a browser either.
+  initDesktopFeatures({
+    onHotkey: (action) => {
+      if (action === "toggle") prompter.toggle();
+      else if (action === "faster") prompter.nudge("speed", 1);
+      else if (action === "slower") prompter.nudge("speed", -1);
+    },
+  });
+
   AppBridge.ready(5000).then(() => {
     el("nearbyBlock").hidden = !nearbyAvailable();
   });

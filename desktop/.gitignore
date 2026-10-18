@@ -1,0 +1,4 @@
+# Installed packages and electron-builder's output. The installers (80 to 110
+# MB each) live only on the GitHub release: GitHub refuses files over 100 MB.
+node_modules/
+dist/

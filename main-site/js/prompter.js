@@ -5,6 +5,7 @@
 
 import { clampSetting, getSettings, saveSettings, SETTING_RANGES } from "./storage.js";
 import { AppBridge } from "./app-bridge.js";
+import { desktopHas, desktopKeepAwake } from "./app-desktop.js";
 
 export class Prompter {
   constructor({ viewport, text, stage, onChange }) {
@@ -33,7 +34,8 @@ export class Prompter {
     // sitting on a pause and still reading off this screen.
     this.keepAwake = false;
     this.wakeLockPending = false;
-    // Held by the Android app rather than the browser. See requestWakeLock.
+    // Held by the Android or desktop app rather than the browser. See
+    // requestWakeLock.
     this.nativeAwake = false;
 
     this.tick = this.tick.bind(this);
@@ -248,12 +250,13 @@ export class Prompter {
   // refused request are both fine: the prompter carries on either way.
   async requestWakeLock() {
     // The Android app's WebView has no Screen Wake Lock, so the app holds the
-    // screen on itself. It is never released by the page being hidden, so it
-    // needs no asking again on return.
-    if (AppBridge.has("keepAwake")) {
+    // screen on itself, and so does the desktop app, whose window can sit
+    // behind another one without the page counting as hidden. Neither is
+    // released by the page being hidden, so it needs no asking again on return.
+    if (AppBridge.has("keepAwake") || desktopHas("keepAwake")) {
       if (this.nativeAwake) return;
       this.nativeAwake = true;
-      AppBridge.call("Cue", "keepAwake", { on: true }).catch(() => {});
+      holdScreen(true);
       return;
     }
 
@@ -293,12 +296,18 @@ export class Prompter {
   releaseWakeLock() {
     if (this.nativeAwake) {
       this.nativeAwake = false;
-      AppBridge.call("Cue", "keepAwake", { on: false }).catch(() => {});
+      holdScreen(false);
     }
     if (!this.wakeLock) return;
     this.wakeLock.release().catch(() => {});
     this.wakeLock = null;
   }
+}
+
+// The screen held on, or let go, by whichever app this page is in.
+function holdScreen(on) {
+  if (desktopKeepAwake(on)) return;
+  AppBridge.call("Cue", "keepAwake", { on }).catch(() => {});
 }
 
 // Speed is lines-per-minute-ish: pixels per second scale with the font size,

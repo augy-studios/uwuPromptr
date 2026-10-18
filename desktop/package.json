@@ -1,0 +1,108 @@
+{
+  "name": "uwupromptr-desktop",
+  "productName": "uwuPromptr",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The uwuPromptr desktop app: cue.uwuapps.org in its own window, plus what a web page cannot do on a computer.",
+  "homepage": "https://cue.uwuapps.org",
+  "author": {
+    "name": "UwU Apps",
+    "email": "ateoks@gmail.com"
+  },
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win nsis msi --x64 --publish never",
+    "build:linux": "electron-builder --linux deb AppImage --x64 --publish never",
+    "build:mac": "electron-builder --mac dmg zip --x64 --arm64 --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "org.uwuapps.cue",
+    "productName": "uwuPromptr",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "settings.js",
+      "updater.js",
+      "hotkeys.js",
+      "links.js",
+      "offline.html",
+      "titlebar.html",
+      "titlebar.js",
+      "titlebar-preload.js",
+      "build/icon.png",
+      "build/tray.png",
+      "build/tray@2x.png",
+      "build/tray@3x.png"
+    ],
+    "artifactName": "uwupromptr-${version}${suffix}.${ext}",
+    "protocols": [
+      {
+        "name": "uwuPromptr link",
+        "schemes": ["uwu"]
+      }
+    ],
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://github.com/augy-studios/uwuPromptr/releases/latest/download"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": ["nsis", "msi"]
+    },
+    "nsis": {
+      "artifactName": "uwupromptr-${version}-setup.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "uwuPromptr"
+    },
+    "msi": {
+      "artifactName": "uwupromptr-${version}.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "uwuPromptr"
+    },
+    "mac": {
+      "icon": "build/icon-mac.png",
+      "category": "public.app-category.productivity",
+      "target": ["dmg", "zip"],
+      "artifactName": "uwupromptr-${version}-mac-${arch}.${ext}",
+      "identity": "-",
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "artifactName": "uwupromptr-${version}-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "AudioVideo",
+      "synopsis": "A teleprompter that works offline, with a phone remote",
+      "executableName": "uwupromptr",
+      "maintainer": "UwU Apps <ateoks@gmail.com>",
+      "target": ["deb", "AppImage"]
+    },
+    "deb": {
+      "artifactName": "uwupromptr-${version}-amd64.${ext}"
+    },
+    "appImage": {
+      "artifactName": "uwupromptr-${version}-x86_64.${ext}"
+    }
+  }
+}

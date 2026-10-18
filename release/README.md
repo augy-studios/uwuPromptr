@@ -8,33 +8,52 @@ release/
   1.1.0/uwupromptr-1.1.0.apk
 ```
 
-`android\build-apk.ps1` puts each build in its folder (see `android/README.md`). This file is
-how to publish one.
+`android\build-apk.ps1` puts each build in its folder (see `android/README.md`). The desktop
+installers are built by GitHub Actions and live only on the GitHub release: at 80 to 110 MB
+each, GitHub refuses them in git, and the root `.gitignore` keeps them out of here. This file
+is how to publish a version of both.
 
 ## Publishing a version
 
-1. **Raise the version** in `android/native/app/build.gradle`: `versionCode` up by one,
-   `versionName` to the new version. A phone only accepts a higher `versionCode`.
-2. **Build**: `powershell -ExecutionPolicy Bypass -File android\build-apk.ps1`.
+The Android app and the desktop apps share a version number and one GitHub release, tagged
+`android-v<version>`.
+
+1. **Raise the version** in both apps:
+   - `android/native/app/build.gradle`: `versionCode` up by one, `versionName` to the new
+     version. A phone only accepts a higher `versionCode`.
+   - `desktop/package.json`: `version` to the same, then `npm install` in `desktop/` so
+     `package-lock.json` follows.
+2. **Build the APK**: `powershell -ExecutionPolicy Bypass -File android\build-apk.ps1`.
 3. **Deploy the site first** if this release needs anything new from it, then **commit the
-   code and the APK together** and push.
-4. On GitHub: **augy-studios/uwuPromptr** > **Releases** > **Draft a new release**.
-   - **Choose a tag**: `android-v<version>`, for example `android-v1.0.0`, created on publish.
-     The updater only reads tags that start `android-v`.
+   code and the APK together** and push. The push builds the desktop apps as a check (the
+   **Actions** tab, **Build desktop apps**), without releasing anything.
+4. **Make the release, with the desktop installers**: **Actions** > **Build desktop apps** >
+   **Run workflow**, with the tag `android-v<version>` (for example `android-v1.0.0`). It
+   builds Windows, macOS and Linux (about ten minutes) and puts them on a **draft** release of
+   that tag. Nobody's app sees a draft, so nothing updates yet.
+5. On GitHub: **Releases** > the draft > **Edit**.
    - **Release title**: `uwuPromptr <version>`.
    - **Attach the APK** from `release/<version>/` and **wait for it to finish uploading
      before publishing**. The "new version" notification goes out on publish, and only for a
      release whose APK is there.
+   - Check the desktop files are all there: two `.exe`/`.msi`, two `.dmg` and two `.zip`, the
+     `.deb`, the `.AppImage`, the `.blockmap`s, and `latest.yml`, `latest-mac.yml`,
+     `latest-linux.yml`. Without the `.yml` files no desktop app sees the version.
    - Paste the release notes into **Describe this release** (below).
    - Leave **Set as a pre-release** unticked, tick **Set as the latest release**, and
      **Publish release**.
-5. Within ten minutes every copy of the app offers the update in its bar, and anybody with
-   **New version alerts** on gets a notification straight away.
-6. Post the announcement.
+6. Within ten minutes every phone offers the update in its bar, and anybody with **New
+   version alerts** on gets a notification straight away. The desktop apps find it within the
+   hour, or at once from **Check for updates...** in the tray.
+7. Post the announcement.
+
+Publishing a release by hand without step 4 works too: the workflow sees the release and adds
+the desktop installers a few minutes later.
 
 Things that stop the update reaching phones: a tag without `android-v`, a draft or
 pre-release, the APK still uploading, a `versionCode` not raised, or the repository made
-private.
+private. Desktop apps also miss it when a `latest*.yml` is missing, or `desktop/package.json`
+wasn't raised (the workflow refuses a tag that doesn't match it).
 
 ## Writing the release notes
 
@@ -49,32 +68,55 @@ Three pieces, for three readers (`android-app-spec.md` section 4.5 has the full 
 
 ## First release: 1.0.0, drafted
 
-Adjust before publishing: drop **New version alerts** if Firebase is not set up yet.
+Adjust before publishing: drop the Android **New version alerts** bullet if Firebase is not
+set up yet (the desktop one works without it).
 
 ### Release notes
 
 ```markdown
-The first uwuPromptr app for Android: the teleprompter at full brightness, a phone remote that
-needs no wifi, and your volume keys or a Bluetooth shutter as a clicker.
+The first uwuPromptr apps, for Android, Windows, macOS and Linux: the teleprompter at full
+brightness and a remote that needs no wifi on your phone, and on your computer a prompter that
+stays on top of your slides and answers a foot pedal from any app.
 
 ## Download
 
 | Device | File |
 | --- | --- |
 | Android 7.0 or newer | `uwupromptr-1.0.0.apk` |
+| Windows 10 or 11 | `uwupromptr-1.0.0-setup.exe` (or the `.msi`, for installing on many computers at once) |
+| Mac with Apple silicon (M1 and later) | `uwupromptr-1.0.0-mac-arm64.dmg` |
+| Mac with an Intel processor | `uwupromptr-1.0.0-mac-x64.dmg` |
+| Debian, Ubuntu, Mint | `uwupromptr-1.0.0-amd64.deb` |
+| Any other Linux | `uwupromptr-1.0.0-x86_64.AppImage` |
 
-On an iPhone, a computer or any other phone, use [cue.uwuapps.org](https://cue.uwuapps.org)
-in the browser, and add it to your home screen to install it as an app.
+On an iPhone or any other device, use [cue.uwuapps.org](https://cue.uwuapps.org) in the
+browser, and add it to your home screen to install it as an app.
 
 ## Installing
 
-Download the `.apk` on your phone and open it. If Android asks, allow your browser to
-install apps. If Play Protect asks about the app, tap **More details** > **Install anyway**.
+- **Android**: download the `.apk` on your phone and open it. If Android asks, allow your
+  browser to install apps. If Play Protect asks about the app, tap **More details** >
+  **Install anyway**.
+- **Windows**: open the `.exe`. Windows says "Windows protected your PC" the first time:
+  click **More info** > **Run anyway**.
+- **Mac**: open the `.dmg` and drag uwuPromptr into Applications. The first time, right-click
+  it and choose **Open**, then **Open** again; on macOS 15 or later, try to open it, then go
+  to **System Settings** > **Privacy & Security** and click **Open Anyway**. If it says the
+  app is damaged, run `xattr -cr "/Applications/uwuPromptr.app"` in Terminal.
+- **Linux**: install the `.deb`, or make the `.AppImage` executable (Properties > Allow
+  executing) and open it. Some systems need FUSE 2 for AppImages (`libfuse2t64` on Debian 13
+  and Ubuntu 24.04 or later).
 
-**Updating later**: the app updates itself. Tap **Update** on the bar at the top of the app
-when a new version is out, or the download-arrow button in the side Edge Tray to check.
+**Updating later**: the apps update themselves.
+- **Android**: tap **Update** on the bar at the top of the app when a new version is out, or
+  the download-arrow button in the side Edge Tray to check.
+- **Windows, Mac and the Linux AppImage**: the new version downloads by itself, and installs
+  when you click **Update** in the title bar or quit the app. The Mac app does this from the
+  Applications folder.
+- **The `.msi` and the `.deb`**: you get a notification when a new version is out, and
+  clicking it opens this page to download it.
 
-The app keeps its own scripts and settings, separate from the browser's: scripts you wrote
+Each app keeps its own scripts and settings, separate from the browser's: scripts you wrote
 in Chrome stay there. Copy their text across with the editor.
 
 ## What's new
@@ -100,6 +142,25 @@ in Chrome stay there. Copy their text across with the editor.
 - **Links open in the app**: a cue.uwuapps.org link, or a remote link with its ID, opens
   straight in the app.
 
+### Desktop app
+- **Keep on top**: the prompter stays above your slides, Zoom or OBS. Click the pin in the
+  side Edge Tray, or tick **Keep on top** in the tray icon's menu.
+- **Move to display**: with two or more screens, send the prompter to another one from the
+  tray icon's menu, then press **F** to fill it. Handy for the screen under the glass.
+- **Shortcuts in other apps**: **F8** starts and stops, **F9** speeds up and **F10** slows
+  down, even while another app is in front. A foot pedal or Stream Deck that sends these keys
+  works too. Turn it on in **Prompter settings** > **Desktop app**. On a Mac, hold Fn with
+  them unless your F keys work as standard function keys.
+- **The screen stays on** while the script is playing, or while a remote is connected.
+- **Lives in the tray**: closing the window keeps uwuPromptr ready in the tray (the menu bar
+  on a Mac), so it opens instantly. **Quit** is in the tray icon's menu. It can also start
+  when you sign in: tick **Start when I sign in** there.
+- **New version alerts**: a notification when a new version is out, on unless you turn it off
+  in **Prompter settings** > **Desktop app**. Check any time from **Check for updates...** in
+  the tray or the download-arrow button in the side Edge Tray.
+- **Links open in the app**: a `uwu://cue/` link, or `uwu://cue/remote?id=` with an ID, opens
+  straight in the app.
+
 ### Everywhere
 - **Edge Trays**: the top bar, the bottom bar and a new side menu each slide off the edge of
   the screen with their tab, giving the script the whole screen, and stay how you left them.
@@ -110,15 +171,22 @@ in Chrome stay there. Copy their text across with the editor.
 ### Announcement
 
 ```text
-✨NEW✨ uwuPromptr 1.0.0 for Android
+✨NEW✨ uwuPromptr 1.0.0 for Android, Windows, Mac and Linux
 cue.uwuapps.org
 
 New:
+- Bars that slide away, so the script gets the whole screen
+- Screen stays on while you read
+
+Android app:
 - Full brightness, for reading through prompter glass
 - A phone remote that works with no wifi at all
 - Volume keys and Bluetooth shutters start and stop the script
-- Screen stays on while you read
-- Bars that slide away, so the script gets the whole screen
+
+Desktop app:
+- Keeps the prompter on top of your slides and calls
+- F8, F9, F10 or a foot pedal drive it from any app
+- Sends it to the screen under the glass
 
 Download the apps and view patch notes: github.com/augy-studios/uwuPromptr/releases/latest
 ```

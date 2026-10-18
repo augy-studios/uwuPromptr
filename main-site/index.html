@@ -387,6 +387,21 @@
                 <button class="btn" type="button" id="appSettingsOpen" hidden>Open Android's settings</button>
             </div>
 
+            <!-- Shown only inside the desktop app, and each control only when
+                 the app has the method it needs (js/app-desktop.js). -->
+            <div class="app-settings" id="desktopSettings" hidden>
+                <p class="modal-section-label section-head">Desktop app</p>
+                <div class="toggle-grid">
+                    <button class="toggle-btn" type="button" id="hotkeysToggle" aria-pressed="false" hidden>
+                        <span data-icon="keyboard"></span>Shortcuts in other apps
+                    </button>
+                    <button class="toggle-btn" type="button" id="desktopAlertsToggle" aria-pressed="false" hidden>
+                        <span data-icon="bell"></span>New version alerts
+                    </button>
+                </div>
+                <p class="mode-note" id="hotkeysNote" hidden></p>
+            </div>
+
             <p class="modal-section-label section-head">Keyboard</p>
             <div class="shortcut-row"><span>Start and stop</span><kbd>Space</kbd></div>
             <div class="shortcut-row"><span>Font size</span><kbd>Up</kbd><kbd>Down</kbd></div>

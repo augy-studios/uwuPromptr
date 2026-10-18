@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'">
+    <title>uwuPromptr</title>
+    <style>
+        /* The app's slim title bar, in the site's colour. Light text with
+           lighter washes on a dark colour (:root.dark), dark text otherwise. */
+        :root {
+            --bg: #ccffcc;
+            --fg: #121815;
+            --hover: rgba(0, 0, 0, 0.08);
+            --press: rgba(0, 0, 0, 0.14);
+            --update: #1e9e46;
+            --update-hover: #18843a;
+            --update-press: #136e30;
+        }
+
+        :root.dark {
+            --fg: #eef2ef;
+            --hover: rgba(255, 255, 255, 0.1);
+            --press: rgba(255, 255, 255, 0.17);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            height: 40px;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding-left: 8px;
+            background: var(--bg);
+            color: var(--fg);
+            font: 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+            -webkit-app-region: drag;
+            user-select: none;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        /* Room for the traffic lights, except in full screen where they go. */
+        :root.os-darwin body { padding-left: 78px; }
+        :root.os-darwin.full body { padding-left: 8px; }
+
+        button {
+            -webkit-app-region: no-drag;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            cursor: default;
+        }
+
+        button:focus-visible {
+            outline: 2px solid currentColor;
+            outline-offset: -2px;
+        }
+
+        .nav {
+            width: 30px;
+            height: 28px;
+            border-radius: 6px;
+        }
+
+        .nav:hover { background: var(--hover); }
+        .nav:active { background: var(--press); }
+        .nav:disabled { opacity: 0.35; background: transparent; }
+
+        .nav svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .loading #reload svg { animation: spin 1s linear infinite; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .title {
+            margin-left: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 600;
+        }
+
+        .where { font-weight: 400; opacity: 0.7; }
+
+        .spacer { flex: 1; min-width: 12px; }
+
+        #update {
+            gap: 6px;
+            height: 28px;
+            padding: 0 12px 0 10px;
+            margin-right: 8px;
+            border-radius: 14px;
+            background: var(--update);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        #update:hover { background: var(--update-hover); }
+        #update:active { background: var(--update-press); }
+        #update[hidden] { display: none; }
+
+        #update svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Windows and Linux: the window's own controls, drawn here. */
+        .controls { display: flex; align-self: stretch; }
+        :root.os-darwin .controls, :root.full .controls { display: none; }
+
+        .controls button {
+            width: 46px;
+            height: 100%;
+        }
+
+        .controls button:hover { background: var(--hover); }
+        .controls button:active { background: var(--press); }
+        #close:hover { background: #c42b1c; color: #fff; }
+        #close:active { background: #b22a1c; color: #fff; }
+
+        .controls svg {
+            width: 10px;
+            height: 10px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1;
+            shape-rendering: crispEdges;
+        }
+
+        #close svg { shape-rendering: auto; }
+        #max .restore, .maximized #max .maximise { display: none; }
+        .maximized #max .restore { display: inline; }
+    </style>
+    <script src="titlebar.js" defer></script>
+</head>
+
+<body>
+    <button class="nav" id="back" type="button" data-act="back" title="Back (Alt+Left)" aria-label="Back" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <button class="nav" id="reload" type="button" data-act="reload" title="Reload (Ctrl+R)" aria-label="Reload">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></svg>
+    </button>
+    <span class="title">uwuPromptr<span class="where" id="where"></span></span>
+
+    <span class="spacer"></span>
+
+    <button id="update" type="button" data-act="update" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+        Update
+    </button>
+
+    <div class="controls">
+        <button id="min" type="button" data-act="minimize" title="Minimise" aria-label="Minimise">
+            <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10"/></svg>
+        </button>
+        <button id="max" type="button" data-act="maximize" title="Maximise" aria-label="Maximise">
+            <svg class="maximise" viewBox="0 0 10 10" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9"/></svg>
+            <svg class="restore" viewBox="0 0 10 10" aria-hidden="true"><rect x="0.5" y="2.5" width="7" height="7"/><path d="M2.5 2.5v-2h7v7h-2"/></svg>
+        </button>
+        <button id="close" type="button" data-act="close" title="Close" aria-label="Close">
+            <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9"/></svg>
+        </button>
+    </div>
+</body>
+
+</html>

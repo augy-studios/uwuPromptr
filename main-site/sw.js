@@ -66,7 +66,7 @@
 // VERSION is a plain integer, counting up by one. Not a semantic version:
 // nothing reads it as one, and it exists only so the browser sees this file
 // differ byte for byte.
-const VERSION = 29;
+const VERSION = 30;
 
 const SHELL = `uwuPromptr-shell-${VERSION}`;
 const FONTS = "uwuPromptr-fonts";
@@ -145,6 +145,8 @@ const PRECACHE = [
   "/js/app-native.js",
   "/js/app-update.js",
   "/js/nearby.js",
+  // The desktop app's side. Loaded by every page, and inert in a browser.
+  "/js/app-desktop.js",
 
   // The icons the interface itself uses, and the manifest.
   "/UPC-192.png",
