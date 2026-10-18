@@ -82,8 +82,8 @@ With the Android app, on one release tagged `android-v<version>` (`release/READM
 
 1. Raise the version here and in the Android app. Commit and push.
 2. Either run **Build desktop apps** by hand with the tag (it makes a draft with the
-   installers; add the APK and publish), or publish the release with the APK and the workflow
-   adds the installers a few minutes later.
+   installers; add the phone and watch APKs and publish), or publish the release with the
+   APKs and the workflow adds the installers a few minutes later.
 3. The release needs every `latest*.yml`, the Mac `.zip`s and the `.blockmap`s as well as the
    installers, or installed apps never see the version. The workflow uploads all of them.
 

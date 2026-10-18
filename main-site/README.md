@@ -28,6 +28,10 @@ the [root README](../README.md).
 - **An Android app**, in `../android/`, which is this site plus a few native
   extras. Everything app-only here is gated on `AppBridge.has()` and does
   nothing in a browser.
+- **A Wear OS watch app**, in `../android/native/wear/`, which drives this
+  site inside the Android app on the paired phone: on the prompter page that
+  prompter, on the remote page whichever prompter it is connected to.
+  `js/watch.js` is the page's side, gated on `AppBridge.has("watch")`.
 - **A desktop app** for Windows, macOS and Linux, in `../desktop/`, the same
   way. Its extras are gated on the method they need in `window.cueDesktop`
   (`js/app-desktop.js`), and do nothing in a browser either.
@@ -61,6 +65,8 @@ js/app-bridge.js    the channel to the Android app; inert in a browser
 js/app-native.js    the Android app's buttons and settings
 js/app-update.js    new Android versions, offered in the update bar
 js/nearby.js        the Android app's offline phone-to-phone remote
+js/watch.js         the Wear OS watch, through the Android app: its commands
+                    in, a summary of the prompter out
 js/app-desktop.js   the desktop app's buttons, settings and title bar colour;
                     inert in a browser
 js/app.js           the prompter page
@@ -71,7 +77,8 @@ js/icons.test.mjs   checks every icon is centred on its viewBox
 index.html          the prompter
 remote.html         the remote, served at /remote by cleanUrls
 api/turn-credentials.js  short-lived TURN credentials, when a relay is set up
-api/app-release.js  the newest Android release, for the app's updater
+api/app-release.js  the newest Android release, for the app's updater (the
+                    phone's APK, never the -watch.apk beside it)
 api/push/release.js GitHub webhook: the "new version" notification
 .well-known/assetlinks.json  the Android signing key, for links that open the app
 ```

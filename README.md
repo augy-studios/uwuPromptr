@@ -12,6 +12,10 @@ mobile hotspot shared from one to the other, which is the reliable way to do it
 anywhere. `main-site/README.md` explains why, and `turn-server/` has the
 optional relay that would lift the restriction.
 
+There are apps too: for Android (with a remote that needs no wifi), for Wear OS watches (play,
+pause and the speed on the crown), and for Windows, macOS and Linux. Downloads are on the
+[latest release](https://github.com/augy-studios/uwuPromptr/releases/latest).
+
 It follows the feature set of [promptr.tv](https://promptr.tv)
 ([source](https://github.com/manifestinteractive/teleprompter)), with finer
 control over speed and font size and a remote that needs no server of ours.
@@ -20,9 +24,10 @@ control over speed and font size and a remote that needs no server of ours.
 
 ```text
 main-site/                 the app, deployed as a static site on Vercel
-android/                   the Android app: the site in Capacitor, plus native extras
+android/                   the Android app: the site in Capacitor, plus native extras,
+                           and in android/native/wear/ the Wear OS watch app
 desktop/                   the Windows, macOS and Linux app: the site in Electron, plus native extras
-release/                   the signed Android APKs, one folder per version, and how to publish
+release/                   the signed phone and watch APKs, one folder per version, and how to publish
 .github/workflows/         builds the desktop installers onto the GitHub release
 turn-server/               optional coturn relay, for pairing across networks
 uwuapps-theme.md           theme system spec, shared across UwU Apps
@@ -37,8 +42,9 @@ LICENSE                    MIT
 ```
 
 `android/README.md` covers the Android app: what it adds, its permissions, and building the
-signed APK with one command. `desktop/README.md` does the same for the desktop app, which
-GitHub Actions builds for every platform.
+signed phone and watch APKs with one command. `android/native/wear/README.md` covers the watch
+app and how to install it on a watch. `desktop/README.md` does the same for the desktop app,
+which GitHub Actions builds for every platform.
 
 `main-site/README.md` covers the app itself: what is in each file, the
 keyboard shortcuts, how the theme works, and what to do before a deploy.

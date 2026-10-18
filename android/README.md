@@ -190,4 +190,6 @@ every sync too; they are committed, but never edit them.
   ID.
 - Each permission: allow, refuse, and refuse for good; the page says what to do each time.
 - A `uwu://cue/remote?id=XXXXXX` link opens the remote with the ID filled in.
+- With the watch app installed: the prompter page says "Your watch is connected" when it opens,
+  and the watch drives it. The rest of the watch's checks are in `native/wear/README.md`.
 - The same site in Chrome: no app-only buttons or settings anywhere.
