@@ -11,7 +11,7 @@
 // newest: re-publishing an old release must not tell every phone to "update"
 // to it. Answers GitHub's ping with { ok: true, pong: true }.
 //
-// Environment, set in the Vercel project (see android/FIREBASE-SETUP.md):
+// Environment, set in the Vercel project (see flutter/FIREBASE-SETUP.md):
 //
 //   GITHUB_WEBHOOK_SECRET      the secret typed into the webhook on GitHub
 //   FIREBASE_SERVICE_ACCOUNT   see api/_push/fcm.js

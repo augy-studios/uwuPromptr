@@ -12,9 +12,12 @@ mobile hotspot shared from one to the other, which is the reliable way to do it
 anywhere. `main-site/README.md` explains why, and `turn-server/` has the
 optional relay that would lift the restriction.
 
-There are apps too: for Android (with a remote that needs no wifi), for Wear OS watches (play,
-pause and the speed on the crown), and for Windows, macOS and Linux. Downloads are on the
-[latest release](https://github.com/augy-studios/uwuPromptr/releases/latest).
+There are apps too, built with Flutter from one project: for Android (Material You by default,
+with a remote that needs no wifi and an Updates page), for Wear OS watches (play, pause and the
+speed on the crown), and for Windows, macOS and Linux (a command bar, a mini remote, shortcuts
+from any app). Downloads are on the
+[latest release](https://github.com/augy-studios/uwuPromptr/releases/latest), and
+[Privacy](https://cue.uwuapps.org/privacy) says what's kept: your scripts stay on your device.
 
 It follows the feature set of [promptr.tv](https://promptr.tv)
 ([source](https://github.com/manifestinteractive/teleprompter)), with finer
@@ -23,53 +26,44 @@ control over speed and font size and a remote that needs no server of ours.
 ## Repository layout
 
 ```text
-main-site/                 the app, deployed as a static site on Vercel
-android/                   the Android app: the site in Capacitor, plus native extras,
-                           and in android/native/wear/ the Wear OS watch app
-desktop/                   the Windows, macOS and Linux app: the site in Electron, plus native extras
-release/                   the signed phone and watch APKs, one folder per version, and how to publish
+main-site/                 the website, deployed as a static site on Vercel, with a few functions
+                           (TURN credentials, the app's releases, Report a bug, the release push)
+flutter/                   the Android, Wear OS, Windows, macOS and Linux apps (flutter/README.md)
+release/                   the APKs and the App Bundle, one folder per version, and how to publish
+announcements/             release notes for GitHub and Google Play, and Telegram announcements
+docs/                      the specs the site and the apps follow, and the store's screenshots
+scripts/                   bug-report-test.mjs, Report a bug's API tested without Telegram
 .github/workflows/         builds the desktop installers onto the GitHub release
 turn-server/               optional coturn relay, for pairing across networks
-uwuapps-theme.md           theme system spec, shared across UwU Apps
-uwuapps-retrofit-time-mode.md  how time-based mode was added to it
-update-bar-spec.md         the update prompt bar spec
-edge-tray-spec.md          the Edge Tray spec
-android-app-spec.md        how UwU Apps sites become Android apps
-desktop-app-spec.md        how UwU Apps sites become desktop apps
-STUN-p2p-spec.md           peer-to-peer pairing without a server of ours
+GOOGLE-PLAY.md             putting the Android app on Google Play
+BUG-REPORT-SETUP.md        the Telegram bot that Report a bug sends through
 CODE_OF_CONDUCT.md
 LICENSE                    MIT
 ```
 
-`android/README.md` covers the Android app: what it adds, its permissions, and building the
-signed phone and watch APKs with one command. `android/native/wear/README.md` covers the watch
-app and how to install it on a watch. `desktop/README.md` does the same for the desktop app,
-which GitHub Actions builds for every platform.
+`flutter/README.md` covers the apps: what's where, building the signed APK and App Bundle with
+one command, and the Playwright suite. `flutter/FIREBASE-SETUP.md` sets up New version alerts,
+and `flutter/android/wear/README.md` covers the watch app. `release/README.md` is how to publish
+a version.
 
-`main-site/README.md` covers the app itself: what is in each file, the
-keyboard shortcuts, how the theme works, and what to do before a deploy.
+`main-site/README.md` covers the website: what is in each file, the keyboard shortcuts, how the
+theme works, and what to do before a deploy. `main-site/.env.example` lists its environment
+variables, all optional.
 
-## The three specs
+## The specs
 
-The files at the root are portable specs shared with the other UwU Apps
-projects, and they are the source of truth for the parts of the app they
-cover. When one of them changes, the app follows it, not the other way round.
+The specs in `docs/` are shared with the other UwU Apps projects, and they are the source of
+truth for the parts they cover. When one of them changes, the site and the apps follow it.
 
-- **`uwuapps-theme.md`** defines seven brand colours and three mode settings
-  (light, dark, and follow the clock) that combine into fourteen valid
-  looks. `main-site/css/theme.css` and `main-site/js/theme.js` are copied
-  from it, with only the storage key changed.
-- **`uwuapps-retrofit-time-mode.md`** is the procedure for adding the
-  time-based mode option, and records why the daylight hours are duplicated
-  in the pre-paint script in every `<head>`.
-- **`update-bar-spec.md`** defines the bar that appears when a new version
-  has downloaded and is waiting. The rule the whole thing rests on is that a
-  new service worker never activates on its own.
-- **`edge-tray-spec.md`** defines the Edge Tray. The prompter has three: the
-  top bar and the bottom bar each slide off their edge, and a side column
-  holds what fits in neither.
-- **`android-app-spec.md`** is the pattern `android/` follows.
-- **`desktop-app-spec.md`** is the pattern `desktop/` follows.
+- **`uwuapps-theme.md`**, **`uwuapps-retrofit-time-mode.md`**: seven brand colours and three mode
+  settings (light, dark, follow the clock). `main-site/css/theme.css` and `js/theme.js` are copied
+  from it; the apps' `lib/theme/theme.dart` reads the same keys.
+- **`update-bar-spec.md`**: the bar that appears when a new version of the site is waiting.
+- **`edge-tray-spec.md`**: the prompter's three Edge Trays.
+- **`page-tour-spec.md`**: the first-visit tours, on the site and in the apps.
+- **`STUN-p2p-spec.md`**: pairing devices without a server of ours.
+- **`flutter-android-app-spec.md`**, **`flutter-desktop-app-spec.md`**,
+  **`desktop-features-spec.md`**: what the apps are and how they're built.
 
 ## Running it locally
 
@@ -87,9 +81,11 @@ IP, or the worker and the update bar will not register.
 ## Contributing
 
 Please read `CODE_OF_CONDUCT.md`. Before opening a pull request that touches
-the theme, the service worker, or the update bar, check the change against
-the relevant spec above: those three are shared with other projects, and a
-change that only suits this app belongs in the app rather than in the spec.
+the theme, the service worker, the update bar or the tours, check the change
+against the relevant spec in `docs/`: those are shared with other projects,
+and a change that only suits this app belongs in the app rather than in the
+spec. A change to the site's features belongs in the apps too
+(`flutter/PORTING.md`).
 
 ## Licence
 

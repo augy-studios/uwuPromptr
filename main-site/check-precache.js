@@ -29,13 +29,14 @@ const root = dirname(fileURLToPath(import.meta.url));
 const ALIASES = new Map([
   ["/", "index.html"],
   ["/remote", "remote.html"],
+  ["/privacy", "privacy.html"],
   ["/404", "404.html"],
 ]);
 
 // The .html spellings, which must never appear in PRECACHE for the reason
 // above. Listed explicitly so the check names the problem rather than reporting
 // a missing file.
-const REDIRECTING = new Set(["/index.html", "/remote.html", "/404.html"]);
+const REDIRECTING = new Set(["/index.html", "/remote.html", "/404.html", "/privacy.html"]);
 
 // Shipped files that are deliberately not precached, with the reason. Anything
 // here is a decision; anything not here and not precached is a finding.

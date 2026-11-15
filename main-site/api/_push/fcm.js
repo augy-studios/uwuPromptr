@@ -4,7 +4,7 @@
 // node:crypto, traded at Google for an access token, and cached until five
 // minutes before it expires. A 401 drops the cache and tries once more.
 //
-// Environment, set in the Vercel project (see android/FIREBASE-SETUP.md):
+// Environment, set in the Vercel project (see flutter/FIREBASE-SETUP.md):
 //
 //   FIREBASE_SERVICE_ACCOUNT   the service account's JSON key, as it was
 //                              downloaded or base64 encoded

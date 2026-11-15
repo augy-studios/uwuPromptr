@@ -1,0 +1,69 @@
+// uwuPromptr for Wear OS: the prompter's remote on your wrist, through the phone's app
+// (wear/README.md). Built alongside the phone's app by flutter/build-apk.ps1, into
+// release/<version>/ as uwupromptr-<version>-watch.apk. Never on Google Play: the watch app is
+// shared on the GitHub release only.
+//
+// The same application id and signing key as the phone's, which the Wearable Data Layer needs to
+// pair the two, and the same version, read from pubspec.yaml so it's only ever raised there.
+plugins {
+    id 'com.android.application'
+}
+
+def pubspec = file('../../pubspec.yaml').text
+def versionMatch = (pubspec =~ /(?m)^version:\s*([0-9.]+)\+(\d+)/)
+def phoneVersionName = versionMatch[0][1]
+def phoneVersionCode = versionMatch[0][2] as int
+
+android {
+    namespace = "org.uwuapps.cue.wear"
+    compileSdk = 36
+    defaultConfig {
+        applicationId "org.uwuapps.cue"
+        // Wear OS 3, the first with tiles from other apps.
+        minSdkVersion 30
+        targetSdkVersion 36
+        versionCode phoneVersionCode
+        versionName phoneVersionName
+    }
+    // The phone's key: flutter/keystore.properties and flutter/android.keystore.
+    def keystoreProps = new Properties()
+    def keystoreFile = rootProject.file('../keystore.properties')
+    if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProps.load(it) }
+    signingConfigs {
+        release {
+            if (keystoreProps.storeFile) {
+                storeFile rootProject.file("../${keystoreProps.storeFile}")
+                storePassword keystoreProps.storePassword
+                keyAlias keystoreProps.keyAlias
+                keyPassword keystoreProps.keyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // Shrunk like the phone's, which Google Play's guidance asks of every app; the tile
+            // and the activity are named in the manifest, which R8 reads by itself.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (keystoreProps.storeFile) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation "androidx.core:core:1.17.0"
+    // A lifecycle owner, for the ambient observer.
+    implementation "androidx.activity:activity:1.11.0"
+    implementation "androidx.wear:wear:1.3.0"
+    implementation "androidx.wear:wear-remote-interactions:1.1.0"
+    implementation "androidx.wear.tiles:tiles:1.6.2"
+    implementation "androidx.wear.protolayout:protolayout:1.4.2"
+    implementation "androidx.wear.protolayout:protolayout-expression:1.4.2"
+    implementation "androidx.concurrent:concurrent-futures:1.2.0"
+    implementation "com.google.android.gms:play-services-wearable:20.0.1"
+}

@@ -20,6 +20,8 @@ import { NearbyClient, nearbyAvailable } from "./nearby.js";
 import { resetAppFeatures } from "./app-native.js";
 import { initAppUpdates } from "./app-update.js";
 import { initWatch, updateWatch } from "./watch.js";
+import { initBugReport } from "./bug-report.js";
+import { initTours } from "./tour.js";
 
 const el = (id) => document.getElementById(id);
 
@@ -661,6 +663,10 @@ function boot() {
     el("nearbyConnectBtn").hidden = !nearby;
     el("nearbyConnectNote").hidden = !nearby;
   });
+
+  // Report a bug, and the remote's first-visit tour.
+  initBugReport();
+  initTours();
 }
 
 if (document.readyState === "loading") {

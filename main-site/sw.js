@@ -66,7 +66,7 @@
 // VERSION is a plain integer, counting up by one. Not a semantic version:
 // nothing reads it as one, and it exists only so the browser sees this file
 // differ byte for byte.
-const VERSION = 31;
+const VERSION = 33;
 
 const SHELL = `uwuPromptr-shell-${VERSION}`;
 const FONTS = "uwuPromptr-fonts";
@@ -121,6 +121,9 @@ const PRECACHE = [
   // error.
   "/404",
   "/404.css",
+  // The privacy page, which the settings and the stores link to.
+  "/privacy",
+  "/privacy.css",
 
   // Styles.
   "/css/theme.css",
@@ -148,6 +151,11 @@ const PRECACHE = [
   "/js/watch.js",
   // The desktop app's side. Loaded by every page, and inert in a browser.
   "/js/app-desktop.js",
+  // Report a bug and the first-visit tours, on both pages.
+  "/js/bug-report.js",
+  "/js/tour.js",
+  // What draws Screenshot a page, loaded the first time it's used.
+  "/vendor/html-to-image-1.11.13/html-to-image.js",
 
   // The icons the interface itself uses, and the manifest.
   "/UPC-192.png",

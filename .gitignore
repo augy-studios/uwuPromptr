@@ -8,8 +8,7 @@
 .vercel
 
 # Nothing here needs a package manager, so anything that turns up is a tool's
-# working directory rather than part of the site. android/ has its own, and its
-# own .gitignore.
+# working directory rather than part of the site. flutter/ has its own .gitignore.
 node_modules/
 
 # Secrets, wherever one is saved by mistake: the Android signing key and its
@@ -24,15 +23,19 @@ google-services.json
 *firebase-adminsdk*.json
 *-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
 
-# release/ keeps only the APKs (the phone's and the watch's) and its README.
-# Everything else that lands there is ignored: the desktop installers that
-# desktop/build-linux.sh copies in, at 80 to 110 MB each too big for GitHub,
-# their latest*.yml and .blockmap files, and anything else a tool leaves. Those
-# live only on the GitHub release.
+# release/<version>/ keeps the Android builds (release/README.md): the phone's APK, the watch's
+# -watch.apk and the App Bundle for Google Play, and this README. GitHub refuses any file over
+# 100 MB, so one that big is listed here by name and goes only on the GitHub release (none so far).
+# The rest never goes in git: the desktop installers (GitHub Actions puts them on the release),
+# their latest*.yml files, and the R8 mapping and Dart symbols that read crash reports back,
+# which stay on this computer.
 release/**
 !release/*/
 !release/README.md
 !release/*/*.apk
+!release/*/*.aab
+release/*/*-mapping.txt
+release/*/*-symbols.zip
 
 # The desktop installers, wherever else a build leaves them.
 *.deb
@@ -46,3 +49,8 @@ release/**
 Thumbs.db
 *.swp
 .idea/
+
+# What's left on disk of the 1.0.0 apps, which flutter/ replaced: their keystore copy, builds and
+# packages. Never committed.
+/android/
+/desktop/

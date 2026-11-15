@@ -1,4 +1,4 @@
-// What the prompter can do inside the desktop app (desktop/) and nowhere else.
+// What the prompter can do inside the desktop app (the 1.0.0 Electron app, which 2.0.0 replaces) and nowhere else.
 //
 //   Screen stays on          while the script plays or a remote is connected,
 //                            held by the app (prompter.js asks through here)

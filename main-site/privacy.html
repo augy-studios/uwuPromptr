@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en-GB">
+
+<head>
+    <!-- Google tag (gtag.js): the site's own, as on every page (said in "The website" below). -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-FMCYFTFPEL"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'G-FMCYFTFPEL');
+    </script>
+
+    <meta charset="utf-8">
+    <title>Privacy | uwuPromptr</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="What uwuPromptr keeps about you, where it goes, and how to delete it." />
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Privacy | uwuPromptr" />
+    <meta property="og:site_name" content="UwU Apps" />
+    <meta property="og:description" content="What uwuPromptr keeps about you, where it goes, and how to delete it." />
+
+    <script>
+        // The reader's light or dark mode and colour, as the prompter has them (index.html does the
+        // same before first paint; keep the hours in step with js/theme.js).
+        (function () {
+            var k = "uwupromptr";
+            var m = "light", c = "classic";
+            try {
+                m = localStorage.getItem(k + ".mode") || "light";
+                c = localStorage.getItem(k + ".colorTheme") || "classic";
+            } catch (e) {}
+            if (m === "time") {
+                var h = new Date().getHours();
+                m = h >= 9 && h < 18 ? "light" : "dark";
+            }
+            document.documentElement.setAttribute("data-mode", m);
+            document.documentElement.setAttribute("data-color-theme", c);
+        })();
+    </script>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+    <link rel="stylesheet" href="/css/theme.css">
+    <link rel="stylesheet" href="/privacy.css">
+    <meta name="theme-color" content="#ccffcc" />
+
+    <link rel="apple-touch-icon" href="/UPC-192.png">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <meta property="og:image" content="/UPC-512.png" />
+</head>
+
+<body class="legal">
+    <main class="glass legal-page">
+        <a class="legal-home" href="/">
+            <img src="/UPC-192.png" width="32" height="32" alt="" />
+            <span class="logo-text">uwuPromptr</span>
+        </a>
+
+        <h1>Privacy</h1>
+        <p class="legal-date">Last updated 15 November 2026</p>
+
+        <p>uwuPromptr is made by Augy Studios. This page says what uwuPromptr keeps about you, where it
+            goes, and how to delete it. It covers the website at cue.uwuapps.org, the Android app (from
+            Google Play or GitHub) and its Wear OS watch app, and the Windows, macOS and Linux apps.</p>
+
+        <section class="legal-short" aria-labelledby="short">
+            <h2 id="short">The short version</h2>
+            <ul>
+                <li>No ads, and nothing about you is sold. The apps don't use your device's advertising ID
+                    and have no analytics or tracking.</li>
+                <li>Your scripts and settings stay on your device. There are no accounts, and nothing you
+                    write is sent to us.</li>
+                <li>The remote connects your devices straight to each other. Your script goes from one to
+                    the other, not through our server.</li>
+                <li>Uninstalling the app, or clearing the website's data, deletes everything it kept.</li>
+            </ul>
+        </section>
+
+        <nav class="legal-toc" aria-label="Contents">
+            <ol>
+                <li><a href="#scripts">Your scripts and settings</a></li>
+                <li><a href="#remote">The remote</a></li>
+                <li><a href="#watch">The watch app</a></li>
+                <li><a href="#bug">Report a bug</a></li>
+                <li><a href="#updates">Updates and notifications</a></li>
+                <li><a href="#website">The website</a></li>
+                <li><a href="#android">Android permissions</a></li>
+                <li><a href="#providers">Who else handles your data</a></li>
+                <li><a href="#delete">Keeping and deleting your data</a></li>
+                <li><a href="#rights">Your choices and rights</a></li>
+                <li><a href="#security">Keeping it safe</a></li>
+                <li><a href="#children">Children</a></li>
+                <li><a href="#changes">Changes to this page</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ol>
+        </nav>
+
+        <h2 id="scripts">1. Your scripts and settings</h2>
+        <p>Your scripts, the prompter's settings (font size, speed, mirroring and the rest), your theme
+            and the remote's last ID are kept on your device only: in your browser's storage on the
+            website, and in the app's own storage in the apps. uwuPromptr has no accounts and no server
+            copy of anything you write.</p>
+        <p>The first time the 2.0 apps open after an update from version 1.0, they copy what the older
+            app kept on the same device into their own storage. Nothing leaves the device.</p>
+
+        <h2 id="remote">2. The remote</h2>
+        <p>The remote lets one device drive another. When you open <strong>Remote control</strong>, the
+            prompter takes a six-character ID; the remote connects with it.</p>
+        <ul>
+            <li>The two devices find each other through <strong>PeerJS</strong>'s public introduction
+                service, which sees both devices' IP addresses and the ID, but never your script.</li>
+            <li>They then talk to each other directly, encrypted, over WebRTC. The script, its settings
+                and the remote's commands go only between your two devices. To find a route between
+                them, each asks a STUN server (Google's or Cloudflare's) for its own public address.</li>
+            <li>Where the devices can't reach each other directly, uwuPromptr may relay the encrypted
+                connection through its own TURN server, which passes the data on without being able to
+                read it, and keeps no copy. The website hands out a short-lived password for it.</li>
+            <li><strong>Connect nearby, without wifi</strong> (Android, with Google Play services) links
+                two phones over Bluetooth and Wi-Fi Direct with Google's Nearby Connections, with no
+                internet at all. The ID is checked inside the encrypted link and never broadcast.</li>
+        </ul>
+
+        <h2 id="watch">3. The watch app</h2>
+        <p>The Wear OS watch app talks only to uwuPromptr on your own phone, through Google's Wearable
+            Data Layer. It sends play, pause and speed commands, and gets back the script's name, the
+            clock and how far through it is. Nothing goes to us.</p>
+
+        <h2 id="bug">4. Report a bug</h2>
+        <p>If you use <strong>Report a bug</strong> (in the side menu, or the remote's top bar), what you
+            send goes to uwuPromptr's server and on to Augy Studios as a message from a Telegram bot. It
+            contains:</p>
+        <ul>
+            <li>what you typed, and a way to reach you, if you give one;</li>
+            <li>up to three pictures, if you add them: from your device, or a screenshot of a page of
+                the app. A screenshot shows whatever is on that page, which can include your script;</li>
+            <li>what helps find the bug, all shown to you before it's sent: the app's version, which app
+                (website, Android, desktop), your device and system as your browser or app describes
+                them, and the page you were on (the prompter or the remote). Never a script's name or
+                its words, unless a picture you add shows them.</li>
+        </ul>
+        <p>uwuPromptr's server doesn't store reports. They're kept in Augy Studios' Telegram chats,
+            which Telegram stores under <a href="https://telegram.org/privacy">its own privacy
+                policy</a>. To limit misuse, the server counts reports from each IP address, for a
+            minute and, where set up, for an hour; then the count is gone. Each report gets an ID (like
+            20261115-7K3Q): quote it to have that report deleted.</p>
+
+        <h2 id="updates">5. Updates and notifications</h2>
+        <ul>
+            <li><strong>The Android app from GitHub</strong> asks uwuPromptr's server whether there's a
+                new version, and downloads it from GitHub, which sees your IP address.</li>
+            <li><strong>New version alerts</strong> (Android, off unless you turn it on) use Firebase
+                Cloud Messaging, Google's push service. Your phone joins a topic for uwuPromptr's new
+                versions, and Google handles the address it sends notifications to. uwuPromptr's server
+                keeps no list of phones.</li>
+            <li><strong>The Android app from Google Play</strong> is updated by Google Play, and has no
+                updater of its own.</li>
+            <li><strong>The Windows, macOS and Linux apps</strong> check GitHub for new versions
+                themselves, about once an hour.</li>
+        </ul>
+
+        <h2 id="website">6. The website</h2>
+        <ul>
+            <li><strong>Google Analytics</strong> counts visits to the website's pages: which pages are
+                opened, roughly where from, and on what kind of device and browser. It uses cookies to
+                tell visits apart. It's on the website only, not in the apps. Your browser's settings or
+                an ad blocker can stop it, and uwuPromptr works the same without it.</li>
+            <li><strong>Google Fonts</strong> serves the website's font, so Google sees your IP address
+                when it loads. The apps carry the font themselves.</li>
+            <li>For the remote, the website loads the PeerJS library from <strong>cdnjs</strong>
+                (Cloudflare), only when you open it.</li>
+        </ul>
+
+        <h2 id="android">7. Android permissions</h2>
+        <ul>
+            <li><strong>Internet</strong>: for the remote, Report a bug and the update check.</li>
+            <li><strong>Notifications</strong>: only asked for when you turn on New version alerts.</li>
+            <li><strong>Nearby devices</strong> (Bluetooth and Wi-Fi; location on Android 11 and older,
+                which Android needs for Bluetooth there): only asked for when you use the offline
+                remote. It isn't used to find where you are.</li>
+            <li><strong>Install apps</strong>: the GitHub version only, to install its own updates when
+                you choose <strong>Update</strong>. The Google Play version doesn't have it.</li>
+            <li><strong>Keep the screen on</strong>: while the script scrolls or a remote is connected.</li>
+        </ul>
+        <p>uwuPromptr doesn't use your contacts, camera, microphone, files or advertising ID, and
+            doesn't record where you are.</p>
+
+        <h2 id="providers">8. Who else handles your data</h2>
+        <p>These companies run parts of uwuPromptr for us. They handle your data only to provide that
+            part, under their own privacy policies. We don't sell or share your data with anyone else,
+            and nothing is used for advertising.</p>
+        <div class="legal-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Who</th>
+                        <th scope="col">What for</th>
+                        <th scope="col">What it handles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td data-label="Who"><a href="https://vercel.com/legal/privacy-policy">Vercel</a></td>
+                        <td data-label="What for">Runs the website and uwuPromptr's server, in Singapore</td>
+                        <td data-label="What it handles">Requests to the server, and its logs (with IP addresses), kept for a short time</td>
+                    </tr>
+                    <tr>
+                        <td data-label="Who"><a href="https://telegram.org/privacy">Telegram</a></td>
+                        <td data-label="What for">Delivers bug reports to Augy Studios</td>
+                        <td data-label="What it handles">The reports you send (section 4)</td>
+                    </tr>
+                    <tr>
+                        <td data-label="Who"><a href="https://policies.google.com/privacy">Google</a></td>
+                        <td data-label="What for">Firebase Cloud Messaging, Nearby Connections and the Wearable Data Layer (Android), Google Analytics and Google Fonts (website), STUN for the remote</td>
+                        <td data-label="What it handles">Notification addresses, visit counts, IP addresses</td>
+                    </tr>
+                    <tr>
+                        <td data-label="Who"><a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a></td>
+                        <td data-label="What for">STUN for the remote, and cdnjs (website)</td>
+                        <td data-label="What it handles">IP addresses</td>
+                    </tr>
+                    <tr>
+                        <td data-label="Who"><a href="https://peerjs.com/">PeerJS</a></td>
+                        <td data-label="What for">Introduces the prompter and the remote to each other</td>
+                        <td data-label="What it handles">IP addresses and the six-character ID</td>
+                    </tr>
+                    <tr>
+                        <td data-label="Who"><a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement">GitHub</a></td>
+                        <td data-label="What for">Hosts the app downloads and their updates</td>
+                        <td data-label="What it handles">IP addresses</td>
+                    </tr>
+                    <tr>
+                        <td data-label="Who"><a href="https://upstash.com/trust/privacy.pdf">Upstash</a></td>
+                        <td data-label="What for">Counts bug reports, to limit misuse, where set up</td>
+                        <td data-label="What it handles">IP addresses, for up to an hour</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p>Some of these are outside your country, so your data may be handled in other countries,
+            such as Singapore and the United States.</p>
+
+        <h2 id="delete">9. Keeping and deleting your data</h2>
+        <p>Everything uwuPromptr keeps is on your device, so you're in charge of it:</p>
+        <ul>
+            <li>Delete a script from the <strong>Scripts</strong> menu, with its bin button.</li>
+            <li>Uninstall the app to delete everything it kept. On the website, clear the site's data in
+                your browser's settings.</li>
+            <li><strong>New ID</strong> in Remote control gives up the remote's ID straight away.</li>
+            <li>Bug reports can be deleted on request: email us and quote the report's ID.</li>
+        </ul>
+
+        <h2 id="rights">10. Your choices and rights</h2>
+        <p>You can leave out the contact details in a bug report, and keep New version alerts off.
+            Depending on where you live (for example under the UK or EU GDPR, or Singapore's PDPA), you
+            may have the right to see the data we hold about you, have it corrected or deleted, take a
+            copy, or object to how it's used. Apart from bug reports, we hold none. Email us to ask, and
+            we'll answer within 30 days. You can also complain to your local data protection
+            authority.</p>
+
+        <h2 id="security">11. Keeping it safe</h2>
+        <p>Everything between the apps and uwuPromptr's server is sent over HTTPS, and the remote is
+            encrypted from device to device. The keys to the bug report bot and the TURN server stay on
+            the server. No service is perfectly secure, but if something goes wrong that affects your
+            data, we'll tell you.</p>
+
+        <h2 id="children">12. Children</h2>
+        <p>uwuPromptr isn't made for children under 13, and we don't knowingly keep their data. If you
+            think a child under 13 has sent us a bug report, email us and we'll delete it.</p>
+
+        <h2 id="changes">13. Changes to this page</h2>
+        <p>If what uwuPromptr does with your data changes, this page changes with it, and the date at
+            the top says when. Bigger changes are also said in the apps' release notes.</p>
+
+        <h2 id="contact">14. Contact</h2>
+        <p>Augy Studios, <a href="mailto:augy@augystudios.com">augy@augystudios.com</a>.</p>
+
+        <p class="legal-back"><a href="/">Back to uwuPromptr</a></p>
+    </main>
+</body>
+
+</html>

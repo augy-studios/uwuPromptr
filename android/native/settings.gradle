@@ -1,7 +1,0 @@
-include ':app'
-// The Wear OS app: built with the phone's, by android/build-apk.ps1 (wear/README.md).
-include ':wear'
-include ':capacitor-cordova-android-plugins'
-project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
-
-apply from: 'capacitor.settings.gradle'

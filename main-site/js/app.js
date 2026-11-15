@@ -31,6 +31,8 @@ import { initAppUpdates } from "./app-update.js";
 import { initDesktopFeatures } from "./app-desktop.js";
 import { NearbyHost, nearbyAvailable } from "./nearby.js";
 import { initWatch, updateWatch, watchAttached } from "./watch.js";
+import { initBugReport } from "./bug-report.js";
+import { initTours, tourPickers } from "./tour.js";
 
 let prompter = null;
 let host = null;
@@ -1294,6 +1296,11 @@ function boot() {
   AppBridge.ready(5000).then(() => {
     el("nearbyBlock").hidden = !nearbyAvailable();
   });
+
+  // Report a bug, and the first-visit tours, with Show me around in the settings.
+  initBugReport();
+  tourPickers(el("tourPicks"), () => closeModal("settingsModal"));
+  initTours();
 }
 
 if (document.readyState === "loading") {

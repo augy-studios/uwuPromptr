@@ -1,4 +1,4 @@
-// The Wear OS watch app (android/native/wear/), through the Android app.
+// The Wear OS watch app (flutter/android/wear/), through the Android app.
 //
 // The watch talks to the uwuPromptr app on its own phone, and the phone's page
 // does what it asks: on the prompter page, to this prompter; on the remote

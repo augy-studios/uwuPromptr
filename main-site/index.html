@@ -172,6 +172,10 @@
                 <span class="tray-rule" aria-hidden="true"></span>
                 <!-- The Android app's buttons are added here, before the theme
                      button, by js/app-native.js. -->
+                <button class="glass-btn" id="bugBtn" type="button" data-bug-open aria-haspopup="dialog"
+                    aria-label="Report a bug" title="Report a bug">
+                    <span data-icon="bug"></span>
+                </button>
                 <button class="glass-btn" id="themeBtn" type="button" aria-haspopup="dialog"
                     aria-label="Theme (Alt+T)" title="Theme (Alt+T)">
                     <span data-icon="sun"></span>
@@ -402,6 +406,10 @@
                 <p class="mode-note" id="hotkeysNote" hidden></p>
             </div>
 
+            <p class="modal-section-label section-head">Show me around</p>
+            <div class="tour-picks" id="tourPicks"></div>
+            <p class="mode-note">Each page shows you around the first time you open it. Pick one to see its tour again.</p>
+
             <p class="modal-section-label section-head">Keyboard</p>
             <div class="shortcut-row"><span>Start and stop</span><kbd>Space</kbd></div>
             <div class="shortcut-row"><span>Font size</span><kbd>Up</kbd><kbd>Down</kbd></div>
@@ -420,6 +428,8 @@
             <p class="modal-section-label section-head">While editing</p>
             <div class="shortcut-row"><span>Save and close</span><kbd>Ctrl</kbd><kbd>S</kbd></div>
             <div class="shortcut-row"><span>Discard changes</span><kbd>Esc</kbd></div>
+
+            <p class="mode-note"><a href="/privacy">Privacy</a>: your scripts stay on this device.</p>
         </div>
     </div>
 
@@ -509,6 +519,50 @@
             <p class="modal-section-label">Brand colour</p>
             <div class="swatch-grid" id="swatchGrid"></div>
         </div>
+    </div>
+
+
+    <!-- Report a bug (js/bug-report.js): what went wrong, a way to be reached, up to three
+         pictures, and what helps find it, sent through api/bug-report.js. -->
+    <div class="modal-backdrop hidden" id="bugModal">
+        <div class="modal glass bug-modal" role="dialog" aria-modal="true" aria-labelledby="bugModalTitle">
+            <div class="modal-head">
+                <h2 id="bugModalTitle">Report a bug</h2>
+                <button class="icon-btn small" type="button" data-close-modal="bugModal" aria-label="Close">
+                    <span data-icon="close"></span>
+                </button>
+            </div>
+            <form id="bugForm" novalidate>
+                <label class="modal-section-label" for="bugText">What went wrong?</label>
+                <textarea class="bug-text" id="bugText" maxlength="2000" rows="5"
+                    placeholder="What you did, what happened, and what you expected"></textarea>
+                <label class="modal-section-label" for="bugContact">How to reach you <span class="bug-optional">(optional)</span></label>
+                <input class="editor-name" id="bugContact" type="text" maxlength="200" autocomplete="off"
+                    placeholder="Telegram @name or email, for an answer">
+                <!-- Never seen by people: filled in, it's a bot. -->
+                <input class="bug-trap" id="bugWebsite" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+                <p class="modal-section-label">Pictures <span class="bug-optional">(optional)</span></p>
+                <div class="bug-shots" id="bugShots" hidden></div>
+                <div class="bug-shot-btns">
+                    <button class="btn" type="button" id="bugAddPic"><span data-icon="image"></span>Add pictures</button>
+                    <button class="btn" type="button" id="bugScreenshot"><span data-icon="screenshot"></span>Screenshot a page</button>
+                    <input type="file" id="bugPicFile" accept="image/*" multiple hidden>
+                </div>
+                <p class="mode-note">Up to 3. Screenshot a page puts this away: go to the page you want (open a window,
+                    or start the script), then press Screenshot this page, and it brings you back here.</p>
+                <p class="mode-note">Sent with it, to help find the bug: <span id="bugDetails"></span></p>
+                <p class="bug-status" id="bugStatus" role="status" hidden></p>
+                <div class="bug-foot">
+                    <button class="btn btn-primary" type="submit" id="bugSend"><span data-icon="send"></span>Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Screenshot a page's bar, floating while you find the page to take. Left out of the picture. -->
+    <div class="bug-shot-bar glass" id="bugShotBar" hidden>
+        <button class="btn btn-primary" type="button" id="bugShotTake"><span data-icon="screenshot"></span><span id="bugShotTakeLabel">Screenshot this page</span></button>
+        <button class="icon-btn" type="button" id="bugShotCancel" aria-label="Cancel" title="Cancel"><span data-icon="close"></span></button>
     </div>
 
     <script type="module" src="/js/app.js"></script>
