@@ -77,7 +77,9 @@ jobs:
           - { name: windows-x64, os: windows-latest }
           - { name: windows-arm64, os: windows-11-arm }
           - { name: macos, os: macos-latest }
-          - { name: linux-x64, os: ubuntu-latest, arch: amd64 }
+          # 24.04, as arm64: ubuntu-latest's 26.04 compiler stops at hotkey_manager_linux's plugin
+          # (-Werror,-Wsometimes-uninitialized). Its older glibc also suits more Linux installs.
+          - { name: linux-x64, os: ubuntu-24.04, arch: amd64 }
           - { name: linux-arm64, os: ubuntu-24.04-arm, arch: arm64 }
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
