@@ -7,7 +7,7 @@ publish_to: 'none'
 
 # The version every platform shares: versionName+versionCode. build-apk.ps1 raises the code by one
 # on every build (Google Play refuses a code it has seen); raise the name for a new release.
-version: 2.0.0+3
+version: 2.0.1+3
 
 environment:
   sdk: ^3.13.0

@@ -10,11 +10,33 @@ import 'package:uwupromptr/app/links.dart';
 import 'package:uwupromptr/data/prompter_logic.dart';
 import 'package:uwupromptr/data/scripts.dart';
 import 'package:uwupromptr/desktop/glance.dart';
+import 'package:uwupromptr/theme/icons.dart';
 import 'package:uwupromptr/desktop/leveldb.dart';
 import 'package:uwupromptr/remote/codes.dart';
 import 'package:uwupromptr/remote/watch.dart';
 
 void main() {
+  // Every icon the app asks for by name, directly or through a helper that takes one (a welcome row,
+  // a title bar tool, a command bar hit, a tray extra): an unknown name draws nothing.
+  test('every icon named in lib/ is in lib/theme/icons.dart', () {
+    final direct = RegExp(
+      r"(?:AppIcon\(|icon: |row\(|tool\(|_Hit\()'([a-z0-9-]+)'",
+    );
+    final tray = RegExp(r"TrayExtra\('[a-z0-9-]+', '([a-z0-9-]+)'");
+    final missing = <String>{};
+    for (final f
+        in Directory('lib')
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.dart'))) {
+      final src = f.readAsStringSync();
+      for (final m in [...direct.allMatches(src), ...tray.allMatches(src)]) {
+        if (!hasIcon(m.group(1)!)) missing.add('${m.group(1)} (${f.path})');
+      }
+    }
+    expect(missing, isEmpty);
+  });
+
   group('settings, as storage.js has them', () {
     test('clamped to their ranges and rounded to their steps', () {
       expect(clampSetting('speed', 12.349999), 12.3);
@@ -26,7 +48,10 @@ void main() {
     });
 
     test('the defaults, whole numbers written as the site writes them', () {
-      expect(jsonEncode(defaultSettings()), '{"fontSize":60,"speed":12,"lineHeight":1.4,"margin":8,"focusPosition":40,"flipX":false,"flipY":false,"focusLine":true,"timer":true}');
+      expect(
+        jsonEncode(defaultSettings()),
+        '{"fontSize":60,"speed":12,"lineHeight":1.4,"margin":8,"focusPosition":40,"flipX":false,"flipY":false,"focusLine":true,"timer":true}',
+      );
     });
 
     test('shown as the site shows them', () {
@@ -55,7 +80,10 @@ void main() {
     });
 
     test('pasted text cleaned', () {
-      expect(cleanPastedText('“Hi”\r\n\r\n\r\n‘there’…  ok \t\nend'), '"Hi"\n\n\'there\'... ok\nend');
+      expect(
+        cleanPastedText('“Hi”\r\n\r\n\r\n‘there’…  ok \t\nend'),
+        '"Hi"\n\n\'there\'... ok\nend',
+      );
     });
   });
 
@@ -83,9 +111,22 @@ void main() {
   group('links', () {
     test('the site\'s and the app\'s own', () {
       expect(parseLink('https://cue.uwuapps.org/'), isA<LinkPrompter>());
-      expect((parseLink('https://cue.uwuapps.org/remote?id=bcdf23') as LinkRemote).code, 'BCDF23');
-      expect((parseLink('https://cue.uwuapps.org/remote.html?id=BCDF23') as LinkRemote).code, 'BCDF23');
-      expect((parseLink('uwu://cue/remote?id=nonsense') as LinkRemote).code, isNull);
+      expect(
+        (parseLink(
+          'https://cue.uwuapps.org/remote?id=bcdf23',
+        ) as LinkRemote).code,
+        'BCDF23',
+      );
+      expect(
+        (parseLink(
+          'https://cue.uwuapps.org/remote.html?id=BCDF23',
+        ) as LinkRemote).code,
+        'BCDF23',
+      );
+      expect(
+        (parseLink('uwu://cue/remote?id=nonsense') as LinkRemote).code,
+        isNull,
+      );
       expect((parseLink('uwu://cue/s/sabc123') as LinkScript).id, 'sabc123');
       expect(parseLink('uwu://cue/updates'), isA<LinkUpdates>());
       expect(parseLink('uwu://cue/watch'), isA<LinkNothing>());
@@ -100,31 +141,63 @@ void main() {
 
   group('the watch, as watch.js checks it', () {
     test('only play, pause, reset and the speed', () {
-      expect(Watch.checked({'type': 'command', 'name': 'toggle'}), {'type': 'command', 'name': 'toggle'});
-      expect(Watch.checked({'type': 'command', 'name': 'nudge', 'setting': 'speed', 'value': 5}), {
+      expect(Watch.checked({'type': 'command', 'name': 'toggle'}), {
         'type': 'command',
-        'name': 'nudge',
-        'setting': 'speed',
-        'value': 1,
-        'coarse': false,
+        'name': 'toggle',
       });
-      expect(Watch.checked({'type': 'command', 'name': 'set', 'setting': 'fontSize', 'value': 120}), isNull);
+      expect(
+        Watch.checked({
+          'type': 'command',
+          'name': 'nudge',
+          'setting': 'speed',
+          'value': 5,
+        }),
+        {
+          'type': 'command',
+          'name': 'nudge',
+          'setting': 'speed',
+          'value': 1,
+          'coarse': false,
+        },
+      );
+      expect(
+        Watch.checked({
+          'type': 'command',
+          'name': 'set',
+          'setting': 'fontSize',
+          'value': 120,
+        }),
+        isNull,
+      );
       expect(Watch.checked({'type': 'command', 'name': 'edit'}), isNull);
     });
   });
 
   test('the tray countdown, cut to Windows\' 127 characters', () {
-    final t = trayText(name: 'A' * 200, playing: true, elapsed: 61000, progress: 42.4);
+    final t = trayText(
+      name: 'A' * 200,
+      playing: true,
+      elapsed: 61000,
+      progress: 42.4,
+    );
     expect(t.length, 127);
     expect(t.endsWith('…'), isTrue);
-    expect(trayText(name: 'Talk', playing: false, elapsed: 61000, progress: 42.4), 'Talk\nPaused · 00:01:01 · 42%');
+    expect(
+      trayText(name: 'Talk', playing: false, elapsed: 61000, progress: 42.4),
+      'Talk\nPaused · 00:01:01 · 42%',
+    );
   });
 
   group('the Electron app\'s storage (leveldb.dart)', () {
     test('a write-ahead log: the newest put wins, a deletion drops it, other origins ignored', () {
       final dir = Directory.systemTemp.createTempSync('uwupromptr-ldb');
       addTearDown(() => dir.deleteSync(recursive: true));
-      Uint8List key(String origin, String k) => Uint8List.fromList([...latin1.encode('_$origin'), 0, 1, ...latin1.encode(k)]);
+      Uint8List key(String origin, String k) => Uint8List.fromList([
+        ...latin1.encode('_$origin'),
+        0,
+        1,
+        ...latin1.encode(k),
+      ]);
       Uint8List latin(String v) => Uint8List.fromList([1, ...latin1.encode(v)]);
       Uint8List utf16(String v) {
         final b = <int>[0];
@@ -149,12 +222,23 @@ void main() {
       ]);
       File('${dir.path}/000003.log').writeAsBytesSync(log);
       final v = LevelDbReader.readOrigin(dir.path, site);
-      expect(v, {'uwupromptr.mode': 'dark', 'uwupromptr.scripts': '[{"name":"Café ☕"}]'});
+      expect(v, {
+        'uwupromptr.mode': 'dark',
+        'uwupromptr.scripts': '[{"name":"Café ☕"}]',
+      });
     });
 
     test('Snappy, with a copy that overlaps what it writes', () {
       // "abcabcabcabc": a literal "abc", then a copy of 9 from 3 back.
-      final compressed = Uint8List.fromList([12, 0x08, 0x61, 0x62, 0x63, 0x15, 0x03]);
+      final compressed = Uint8List.fromList([
+        12,
+        0x08,
+        0x61,
+        0x62,
+        0x63,
+        0x15,
+        0x03,
+      ]);
       expect(latin1.decode(snappyDecode(compressed)), 'abcabcabcabc');
     });
   });

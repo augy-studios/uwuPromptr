@@ -66,7 +66,7 @@
 // VERSION is a plain integer, counting up by one. Not a semantic version:
 // nothing reads it as one, and it exists only so the browser sees this file
 // differ byte for byte.
-const VERSION = 33;
+const VERSION = 34;
 
 const SHELL = `uwuPromptr-shell-${VERSION}`;
 const FONTS = "uwuPromptr-fonts";
@@ -315,14 +315,19 @@ async function handle(request, url) {
  * makes the prompter open with no connection. The update path is the VERSION
  * bump, not a revalidation on every page view.
  */
+const PAGES = { "/": "/", "/index": "/", "/remote": "/remote", "/privacy": "/privacy" };
+
 async function navigation(request, url) {
   // cleanUrls in vercel.json serves /remote from remote.html, so both spellings
   // have to land on the same cached document. Matching only the clean one sends
   // an offline visitor to /remote.html the prompter instead.
   // Both spellings map onto the one cached document, and the key is the clean
   // address because that is what was precached: see the note on PRECACHE.
-  const path = url.pathname.replace(/\/$/, "");
-  const target = path === "/remote" || path === "/remote.html" ? "/remote" : "/";
+  // Each page the worker precaches, under its clean address. Anything else is the network's
+  // to answer (a 404 is a 404), with the prompter shell only when offline: mapping every address
+  // to the shell served the prompter at /privacy.
+  const path = url.pathname.replace(/\.html$/, "").replace(/(.)\/$/, "$1");
+  const target = PAGES[path] ?? null;
 
   // In development the freshest document wins, so an edit to the HTML shows up
   // on reload rather than after a version bump.
@@ -330,14 +335,14 @@ async function navigation(request, url) {
     try {
       return await fetch(request);
     } catch {
-      const cached = await caches.match(target);
+      const cached = await caches.match(target ?? "/");
       // Same rule as below: a navigation never answers 503, because an
       // installed app given one fails to open rather than showing anything.
       return cached ?? lastResortPage();
     }
   }
 
-  const cached = await caches.match(target);
+  const cached = target && (await caches.match(target));
   if (cached) return cached;
 
   try {

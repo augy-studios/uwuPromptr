@@ -8,6 +8,9 @@ import { button, mockApi, noErrors, openApp, script, seed } from "./helpers.js";
 const SITE = "http://127.0.0.1:47392";
 test.setTimeout(120_000);
 
+/** The site's Google Analytics, kept out of the tests' visits. */
+const noAnalytics = (context) => context.route(/googletagmanager|google-analytics|doubleclick/, (r) => r.abort());
+
 /** The remote ID the remote control window shows, from its "Remote ID ABC123, tap to copy". */
 async function shownCode(page) {
   const id = page.getByRole("button", { name: /^Remote ID [A-Z0-9]{6}, tap to copy/ });
@@ -17,6 +20,7 @@ async function shownCode(page) {
 }
 
 test("the app's prompter, driven by the website's remote: state, commands, the script, bye", async ({ page, context }) => {
+  await noAnalytics(context);
   await mockApi(page);
   await seed(page, { "uwupromptr.scripts": [script("s1", "Pairing test", "Words on the prompter.\n".repeat(40))], "uwupromptr.activeScript": "s1" });
   await openApp(page);
@@ -60,6 +64,7 @@ test("the app's prompter, driven by the website's remote: state, commands, the s
 });
 
 test("the website's prompter, driven by the app's remote", async ({ page, context }) => {
+  await noAnalytics(context);
   const prompter = await context.newPage();
   await prompter.goto(`${SITE}/`);
   await prompter.evaluate(() => {

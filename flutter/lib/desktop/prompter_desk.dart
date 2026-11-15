@@ -58,7 +58,9 @@ class PrompterDesk extends ChangeNotifier {
     for (final (key, name, _) in _keys) {
       try {
         await hotKeyManager.register(
-          HotKey(identifier: 'uwupromptr-$name', key: key, scope: HotKeyScope.system),
+          // `modifiers` given, even empty: left out, it's sent as null, and the Windows plugin
+          // reads it as a list without looking, which ends the app (hotkey_manager_windows 0.2.0).
+          HotKey(identifier: 'uwupromptr-$name', key: key, modifiers: const [], scope: HotKeyScope.system),
           keyDownHandler: (_) {
             final p = Prompter.I;
             switch (name) {

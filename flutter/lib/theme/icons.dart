@@ -47,6 +47,7 @@ const _paths = <String, String>{
   'screenshot-long': '<path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M12 7v10M9 14l3 3 3-3"/>',
   'link': '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
   'search': '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/>',
+  'power': '<path d="M12 3v8"/><path d="M6.6 6.6a7.5 7.5 0 1 0 10.8 0"/>',
   'refresh': '<path d="M20 11a8 8 0 1 0-2.3 6.3"/><path d="M20 4v7h-7"/>',
   'chevron-left': '<path d="m15 5-7 7 7 7"/>',
   'chevron-right': '<path d="m9 5 7 7-7 7"/>',
@@ -58,7 +59,8 @@ const _paths = <String, String>{
   'maximise': '<rect x="5" y="5" width="14" height="14" rx="1"/>',
   'restore': '<rect x="4.5" y="8" width="11.5" height="11.5" rx="1"/><path d="M8 8V4.5h11.5V16H16"/>',
   'widget': '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/>',
-  'phone': '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>',
+  'phone':
+      '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>',
   'monitor': '<rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M8 21h8M12 16.5V21"/>',
   'globe': '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
   'star': '<path d="M12 3l2.6 5.3 5.9.9-4.3 4.2 1 5.9L12 16.5l-5.2 2.8 1-5.9L3.5 9.2l5.9-.9z" fill="currentColor"/>',
@@ -70,15 +72,29 @@ const _paths = <String, String>{
 /// The stroke width each icon is drawn with where it isn't the site's usual 1.8.
 const _strokes = <String, double>{'chevronRight': 2};
 
+/// Whether there's an icon of that name.
 bool hasIcon(String name) => _paths.containsKey(name);
 
-/// The SVG of one icon, in a colour: for places that need the picture itself (the tray icon).
-String iconSvg(String name, {String colour = '#000000', double? stroke}) =>
+/// The SVG of one icon, in a colour: for places that need the picture itself (the tray icon). An
+/// unknown name draws nothing, so in a debug build it says so instead (test/logic_test.dart also
+/// checks every name the app asks for).
+String iconSvg(String name, {String colour = '#000000', double? stroke}) {
+  assert(hasIcon(name), 'No icon called "$name" in lib/theme/icons.dart');
+  return _svg(name, colour, stroke);
+}
+
+String _svg(String name, String colour, double? stroke) =>
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="$colour" stroke-width="${stroke ?? _strokes[name] ?? 1.8}" '
     'stroke-linecap="round" stroke-linejoin="round">${(_paths[name] ?? '').replaceAll('currentColor', colour)}</svg>';
 
 class AppIcon extends StatelessWidget {
-  const AppIcon(this.name, {super.key, this.size = 20, this.color, this.stroke});
+  const AppIcon(
+    this.name, {
+    super.key,
+    this.size = 20,
+    this.color,
+    this.stroke,
+  });
 
   final String name;
   final double size;
@@ -87,8 +103,13 @@ class AppIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? IconTheme.of(context).color ?? DefaultTextStyle.of(context).style.color ?? Colors.black;
-    final hex = '#${(c.toARGB32() & 0xffffff).toRadixString(16).padLeft(6, '0')}';
+    final c =
+        color ??
+        IconTheme.of(context).color ??
+        DefaultTextStyle.of(context).style.color ??
+        Colors.black;
+    final hex =
+        '#${(c.toARGB32() & 0xffffff).toRadixString(16).padLeft(6, '0')}';
     return Opacity(
       opacity: c.a,
       child: SvgPicture.string(
