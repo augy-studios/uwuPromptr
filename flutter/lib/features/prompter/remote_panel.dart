@@ -71,6 +71,7 @@ class RemotePanel extends StatelessWidget {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
+                    mouseCursor: WidgetStateMouseCursor.clickable,
                     onTap: code == null
                         ? null
                         : () => _copy(

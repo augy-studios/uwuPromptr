@@ -43,7 +43,8 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;
 
   std::vector<Favourite> favourites_;
-  int current_ = 0;
+  // Whether the prompter is playing: the middle thumbnail button shows pause, or play.
+  bool playing_ = false;
   bool thumbs_added_ = false;
   UINT taskbar_created_ = 0;
 };

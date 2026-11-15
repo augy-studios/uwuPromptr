@@ -562,6 +562,7 @@ class _BugReportState extends State<BugReport> {
                           label: 'Remove picture ${i + 1}',
                           excludeSemantics: true,
                           child: InkWell(
+                            mouseCursor: WidgetStateMouseCursor.clickable,
                             customBorder: const CircleBorder(),
                             onTap: () =>
                                 setState(() => BugPictures.removeAt(i)),

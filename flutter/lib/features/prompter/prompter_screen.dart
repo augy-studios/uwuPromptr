@@ -462,6 +462,7 @@ class _HBar extends StatelessWidget {
               ),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
+                mouseCursor: WidgetStateMouseCursor.clickable,
                 onTap: () => Trays.I.toggle(name),
                 child: Padding(
                   padding: EdgeInsets.only(
@@ -548,6 +549,7 @@ class _TopBar extends StatelessWidget {
                   shape: StadiumBorder(side: BorderSide(color: c.border)),
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
+                    mouseCursor: WidgetStateMouseCursor.clickable,
                     onTap: () => openScriptsSheet(context),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -651,6 +653,7 @@ class _Transport extends StatelessWidget {
                     '$label ${formatSetting(name, p.get(name))}, opens settings',
                 excludeSemantics: true,
                 child: InkWell(
+                  mouseCursor: WidgetStateMouseCursor.clickable,
                   borderRadius: BorderRadius.circular(8),
                   onTap: () => openSettingsSheet(context),
                   child: ConstrainedBox(
@@ -709,6 +712,7 @@ class _Transport extends StatelessWidget {
                 shape: CircleBorder(side: BorderSide(color: c.border)),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
+                  mouseCursor: WidgetStateMouseCursor.clickable,
                   onTap: p.togglePlay,
                   child: SizedBox(
                     width: 52,
@@ -817,6 +821,7 @@ class _StepButton extends StatelessWidget {
         label: label,
         excludeSemantics: true,
         child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
           customBorder: const CircleBorder(),
           onTap: onTap,
           child: SizedBox(
@@ -925,6 +930,7 @@ class _SideTray extends StatelessWidget {
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
+              mouseCursor: WidgetStateMouseCursor.clickable,
               onTap: () => trays.toggle('side'),
               child: SizedBox(
                 width: 24,

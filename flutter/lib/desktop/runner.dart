@@ -2,7 +2,7 @@
 //   Windows  the Jump List (the scripts) and the taskbar's thumbnail buttons (previous script,
 //            start and stop, next script) (windows/runner/flutter_window.cpp)
 //   macOS    the Dock menu and badge (macos/Runner/AppDelegate.swift)
-// Events back: 'thumb' with 'toggle' or a script's link, 'dock' with a script id, 'open' with a
+// Events back: 'thumb' with 'toggle', 'previous' or 'next', 'dock' with a script id, 'open' with a
 // link and 'activate' (macOS). Where the runner has no channel (Linux), every call is quietly
 // nothing.
 import 'package:flutter/services.dart';
@@ -50,6 +50,9 @@ class Runner {
       for (final f in favs) {'id': '${f['code']}', 'name': '${f['name']}', 'link': 'uwu://cue/s/${f['code']}'},
     ],
   });
+
+  /// Whether the prompter is playing, for the taskbar's start and stop button (Windows).
+  static Future<void> setPlaying(bool on) => _call('setPlaying', on);
 
   /// The Dock's badge (macOS): a few characters, or '' for none.
   static Future<void> setBadge(String text) => _call('setBadge', text);

@@ -2,8 +2,8 @@
 // §5, docs/flutter-desktop-app-spec.md §2.3–2.5). 40 px tall, in the brand colour (writing light
 // or dark by contrast), draggable where there's nothing to click, double-click to maximise:
 //
-//   (macOS traffic lights) Back Forward Reload  [ Command / Search bar ]  Copy link Screenshot
-//   Long screenshot (Update) (Windows, Linux: minimise, maximise, close)
+//   (macOS traffic lights) Back Forward Reload  [ Command / Search bar ]  Scripts Remote
+//   Copy link Screenshot Long screenshot (Update) (Windows, Linux: minimise, maximise, close)
 //
 // The command bar shows the open script's name at rest; Ctrl+K, Ctrl+F, Ctrl+L or F6 (⌘K, ⌘F, ⌘L)
 // opens a live search of the scripts (their names and words) and the app's commands. A pasted
@@ -531,6 +531,7 @@ class _DesktopChromeState extends State<DesktopChrome> {
         label: label,
         excludeSemantics: true,
         child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
           onTap: onTap,
           borderRadius: BorderRadius.circular(6),
           child: SizedBox(
@@ -595,6 +596,32 @@ class _DesktopChromeState extends State<DesktopChrome> {
                   child: Center(child: _commandBar(c, ink, bg)),
                 ),
               ),
+            ),
+            // The scripts beside the prompter, from 1024 px wide, and this computer as the remote
+            // (or back to the prompter from there). In the title bar rather than a rail, so the
+            // edge trays are the only thing round the prompter.
+            ListenableBuilder(
+              listenable: Listenable.merge([Scripts.I, AppPages.current]),
+              builder: (context, _) {
+                final remote = AppPages.active() == AppPages.remote;
+                final wide = MediaQuery.sizeOf(context).width > Env.splitWidth;
+                final paneOn = Scripts.I.pane;
+                return Row(
+                  children: [
+                    if (wide && !remote)
+                      tool(
+                        'sidebar',
+                        paneOn ? 'Hide the scripts' : 'Show the scripts',
+                        () => Scripts.I.pane = !paneOn,
+                      ),
+                    tool(
+                      remote ? 'scripts' : 'remote',
+                      remote ? 'Back to the prompter' : 'Use this computer as the remote',
+                      () => AppPages.open(remote ? AppPages.prompter : AppPages.remote),
+                    ),
+                  ],
+                );
+              },
             ),
             tool('link', 'Copy link', _copyLink),
             ValueListenableBuilder<bool>(

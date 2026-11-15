@@ -350,6 +350,9 @@ ThemeData buildTheme({
   }
 
   final radius = BorderRadius.circular(material ? 14 : 10);
+  // The pointing hand over anything that can be pressed, as on the website. Flutter shows it only
+  // on the web by itself (WidgetStateMouseCursor.adaptiveClickable); disabled controls keep the arrow.
+  const hand = WidgetStateMouseCursor.clickable;
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
@@ -398,7 +401,7 @@ ThemeData buildTheme({
         ),
         padding: EdgeInsets.symmetric(horizontal: 18, vertical: desktop ? 12 : 14),
         textStyle: TextStyle(fontFamily: material ? null : 'Jua', fontSize: 14, fontWeight: material ? FontWeight.w600 : FontWeight.w400),
-      ),
+      ).copyWith(mouseCursor: hand),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
@@ -408,22 +411,31 @@ ThemeData buildTheme({
         shape: RoundedRectangleBorder(borderRadius: radius),
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: desktop ? 10 : 12),
         textStyle: TextStyle(fontFamily: material ? null : 'Jua', fontSize: 13),
-      ),
+      ).copyWith(mouseCursor: hand),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: colors.brandInk,
         textStyle: TextStyle(fontFamily: material ? null : 'Jua', fontSize: 13),
-      ),
+      ).copyWith(mouseCursor: hand),
     ),
+    elevatedButtonTheme: const ElevatedButtonThemeData(style: ButtonStyle(mouseCursor: hand)),
+    iconButtonTheme: const IconButtonThemeData(style: ButtonStyle(mouseCursor: hand)),
+    segmentedButtonTheme: const SegmentedButtonThemeData(style: ButtonStyle(mouseCursor: hand)),
+    menuButtonTheme: const MenuButtonThemeData(style: ButtonStyle(mouseCursor: hand)),
+    listTileTheme: const ListTileThemeData(mouseCursor: hand),
+    sliderTheme: const SliderThemeData(mouseCursor: hand),
+    popupMenuTheme: const PopupMenuThemeData(mouseCursor: hand),
     checkboxTheme: CheckboxThemeData(
       fillColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? colors.brandInk : null),
       checkColor: WidgetStatePropertyAll(colors.bg),
       side: BorderSide(color: colors.muted, width: 1.5),
+      mouseCursor: hand,
     ),
     switchTheme: material
-        ? null
+        ? const SwitchThemeData(mouseCursor: hand)
         : SwitchThemeData(
+            mouseCursor: hand,
             trackColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? colors.brandInk : colors.surfaceStrong),
             thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? colors.bg : colors.muted),
             trackOutlineColor: WidgetStatePropertyAll(colors.border),
@@ -451,14 +463,6 @@ ThemeData buildTheme({
       thumbColor: WidgetStatePropertyAll(colors.muted.withValues(alpha: 0.5)),
       thickness: const WidgetStatePropertyAll(8),
       radius: const Radius.circular(4),
-    ),
-    navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: colors.surface,
-      indicatorColor: colors.brandFill,
-      selectedIconTheme: IconThemeData(color: colors.onBrand, size: 20),
-      unselectedIconTheme: IconThemeData(color: colors.ink, size: 20),
-      selectedLabelTextStyle: TextStyle(color: colors.ink, fontSize: 11, fontFamily: material ? null : 'Jua'),
-      unselectedLabelTextStyle: TextStyle(color: colors.muted, fontSize: 11, fontFamily: material ? null : 'Jua'),
     ),
   );
 }

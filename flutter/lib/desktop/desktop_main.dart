@@ -22,8 +22,10 @@ import 'package:flutter/material.dart';
 import '../app/app.dart';
 import '../app/fullscreen.dart';
 import '../data/migrate.dart';
+import '../data/scripts.dart';
 import '../features/prompter/prompter.dart';
 import '../features/prompter/scripts_sheet.dart';
+import '../features/prompter/session.dart';
 import '../features/theme/theme_sheet.dart';
 import '../native/bridge.dart';
 import '../theme/theme.dart';
@@ -95,6 +97,14 @@ Future<void> _welcome() async {
   await applyWelcome(await done.future);
 }
 
+/// The script before or after the open one, in the scripts' order, round from the end.
+void _stepScript(int by) {
+  final all = Scripts.I.all;
+  if (all.length < 2) return;
+  final at = all.indexWhere((s) => s['id'] == Scripts.I.activeId);
+  Session.I.switchTo('${all[(at + by) % all.length]['id']}');
+}
+
 /// After the app's started: the chrome round it, the tray, notifications, the glance surfaces,
 /// the mini remotes, links, start at sign-in, and the update checks.
 Future<void> desktopAfterApp(List<String> args) async {
@@ -115,13 +125,25 @@ Future<void> desktopAfterApp(List<String> args) async {
   ViewHistory.start();
   Runner.listen();
   Runner.onDock = (id) => Desktop.show('uwu://cue/s/$id');
+  // The taskbar's thumbnail buttons work the prompter where it is, without bringing it forward.
   Runner.onThumb = (what) {
-    if (what == 'toggle') {
-      Prompter.I.togglePlay();
-    } else if (what.startsWith('uwu://')) {
-      Desktop.show(what);
+    switch (what) {
+      case 'toggle':
+        Prompter.I.togglePlay();
+      case 'previous':
+        _stepScript(-1);
+      case 'next':
+        _stepScript(1);
     }
   };
+  // The start and stop button shows play or pause, as the prompter is.
+  var playing = Prompter.I.playing;
+  Runner.setPlaying(playing);
+  Prompter.I.addListener(() {
+    if (Prompter.I.playing == playing) return;
+    playing = Prompter.I.playing;
+    Runner.setPlaying(playing);
+  });
   Runner.onOpen = (link) => link == null ? Desktop.show() : Desktop.onSecondCopy([link]);
   DeskWidgets.listen((link) => Desktop.show(link));
   Updater.showSplash = () async {

@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import '../../app/env.dart';
 import '../../app/nav.dart';
 import '../../app/pages.dart';
+import '../../data/scripts.dart';
 import '../../data/store.dart';
 import '../../theme/theme.dart';
 import '../../widgets/sheet.dart';
@@ -63,9 +64,10 @@ class TourDef {
   final String? page;
 }
 
-bool _wide() {
+/// Wide enough for the scripts beside the prompter (lib/app/home.dart).
+bool _wideForPane() {
   final ctx = AppNav.context;
-  return ctx != null && MediaQuery.sizeOf(ctx).width > Env.phoneWidth;
+  return ctx != null && MediaQuery.sizeOf(ctx).width > Env.splitWidth;
 }
 
 /// The prompter's tour is the welcome: its key things, then where the remote is and where tours
@@ -93,9 +95,9 @@ final tours = <String, TourDef>{
       'top-tab',
     ], 'Drive it from your phone: this gives a code to type in there.'),
     TourStep(
-      const ['rail'],
-      'Or use this computer as the remote, for a prompter somewhere else.',
-      when: () => Env.desktop && _wide(),
+      const ['scripts-pane'],
+      'Your scripts, beside the prompter. The buttons at the top, by Copy link, put them away, or make this computer the remote for a prompter somewhere else.',
+      when: () => Env.desktop && Scripts.I.pane && _wideForPane(),
     ),
     const TourStep([
       'settings-btn',

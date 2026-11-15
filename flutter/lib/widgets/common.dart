@@ -104,6 +104,7 @@ class GlassButton extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
+            mouseCursor: WidgetStateMouseCursor.clickable,
             onTap: onPressed,
             child: SizedBox(
               width: size,
@@ -160,6 +161,7 @@ class IconBtn extends StatelessWidget {
           shape: CircleBorder(side: BorderSide(color: c.border)),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
+            mouseCursor: WidgetStateMouseCursor.clickable,
             onTap: onPressed,
             child: SizedBox(
               width: size,
@@ -410,6 +412,7 @@ class ToggleChip extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

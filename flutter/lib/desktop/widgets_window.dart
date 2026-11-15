@@ -227,6 +227,7 @@ class _WidgetAppState extends State<_WidgetApp> with WindowListener {
     Widget small(String icon, String label, VoidCallback onTap, {bool on = false}) => Tooltip(
       message: label,
       child: InkWell(
+        mouseCursor: WidgetStateMouseCursor.clickable,
         borderRadius: BorderRadius.circular(6),
         onTap: onTap,
         child: Padding(padding: const EdgeInsets.all(5), child: AppIcon(icon, size: 14, color: on ? c.brandInk : c.muted)),

@@ -1,6 +1,6 @@
 // The app's one screen: the prompter and the remote, each kept (an IndexedStack), with the update
-// bar above them on Android. On the desktop a navigation rail sits at the left, and from 1024 px
-// wide the scripts beside the prompter, picked from there rather than from a window.
+// bar above them on Android. On the desktop, from 1024 px wide, the scripts can slide in beside
+// the prompter, picked from there rather than from a window.
 import 'package:flutter/material.dart';
 
 import '../data/scripts.dart';
@@ -92,7 +92,7 @@ class _HomeState extends State<Home> {
     final remote = page == AppPages.remote;
     // The page not on show takes no focus: it isn't laid out, so it has nowhere to be.
     final pages = IndexedStack(
-      // The same pages wherever the shell puts them (the rail, the scripts pane, full screen), so
+      // The same pages wherever the shell puts them (beside the scripts pane or not, full screen), so
       // what's on them stays.
       key: _pagesKey,
       index: remote ? 1 : 0,
@@ -150,49 +150,64 @@ class _HomeState extends State<Home> {
   }
 }
 
-/// The desktop's navigation rail, and from 1024 px wide the scripts beside the prompter.
+/// From 1024 px wide, the scripts beside the prompter, sliding in and out from the title bar's
+/// Scripts button. No navigation rail: the edge trays are what put the controls away, and a fixed
+/// column beside them would undo that. The remote page is a button in the title bar too.
 class _DesktopShell extends StatelessWidget {
   const _DesktopShell({required this.page, required this.child});
   final String page;
   final Widget child;
 
+  /// The pane's width, and its divider's.
+  static const paneWidth = 360.0;
+
   @override
   Widget build(BuildContext context) {
     final c = UwuColors.of(context);
     final w = MediaQuery.sizeOf(context).width;
-    if (w < Env.phoneWidth) return child;
+    if (w <= Env.splitWidth) return child;
+    // Instant for anybody who's asked their computer for less motion.
+    final duration = MediaQuery.disableAnimationsOf(context) ? Duration.zero : const Duration(milliseconds: 240);
     return ListenableBuilder(
       listenable: Listenable.merge([Scripts.I, ThemeController.I]),
       builder: (context, _) {
-        final paneOn = Scripts.I.pane;
-        final showPane = w > Env.splitWidth && page == AppPages.prompter && paneOn;
+        final show = page == AppPages.prompter && Scripts.I.pane;
         return Row(
           children: [
-            NavigationRail(
-              key: TourTargets.key('rail'),
-              selectedIndex: page == AppPages.remote ? 1 : 0,
-              labelType: NavigationRailLabelType.all,
-              onDestinationSelected: (i) => AppPages.open(i == 1 ? AppPages.remote : AppPages.prompter),
-              destinations: const [
-                NavigationRailDestination(icon: AppIcon('scripts', size: 20), label: Text('Prompter')),
-                NavigationRailDestination(icon: AppIcon('remote', size: 20), label: Text('Remote')),
-              ],
-              trailing: w > Env.splitWidth && page == AppPages.prompter
-                  ? Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: IconButton(
-                        tooltip: paneOn ? 'Hide the scripts' : 'Show the scripts',
-                        onPressed: () => Scripts.I.pane = !paneOn,
-                        icon: AppIcon(paneOn ? 'chevron-left' : 'chevron-right', size: 18, color: c.ink),
+            // Laid out at its full width throughout, and uncovered from its right edge, so its
+            // rows don't rewrap as it moves. Put away, it's out of reach of the mouse, the keys
+            // and a screen reader.
+            AnimatedContainer(
+              duration: duration,
+              curve: Curves.easeInOutCubic,
+              width: show ? paneWidth + 1 : 0,
+              child: ClipRect(
+                child: OverflowBox(
+                  alignment: Alignment.centerRight,
+                  minWidth: paneWidth + 1,
+                  maxWidth: paneWidth + 1,
+                  child: ExcludeFocus(
+                    excluding: !show,
+                    child: ExcludeSemantics(
+                      excluding: !show,
+                      child: IgnorePointer(
+                        ignoring: !show,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              key: TourTargets.key('scripts-pane'),
+                              width: paneWidth,
+                              child: const _ScriptsPane(),
+                            ),
+                            VerticalDivider(width: 1, color: c.border),
+                          ],
+                        ),
                       ),
-                    )
-                  : null,
+                    ),
+                  ),
+                ),
+              ),
             ),
-            VerticalDivider(width: 1, color: c.border),
-            if (showPane) ...[
-              SizedBox(width: 360, child: const _ScriptsPane()),
-              VerticalDivider(width: 1, color: c.border),
-            ],
             Expanded(child: child),
           ],
         );

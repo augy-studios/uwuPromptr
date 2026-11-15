@@ -98,6 +98,7 @@ class ScriptRow extends StatelessWidget {
                 label: '$name, $meta',
                 excludeSemantics: true,
                 child: InkWell(
+                  mouseCursor: WidgetStateMouseCursor.clickable,
                   onTap: () {
                     if (closeOnPick) AppSheet.close(context);
                     Session.I.switchTo('${script['id']}');

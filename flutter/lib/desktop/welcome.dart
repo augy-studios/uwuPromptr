@@ -229,15 +229,19 @@ class _WelcomeAppState extends State<WelcomeApp> with WindowListener {
                 row(
                   'moon',
                   'Theme',
-                  DropdownButton<String>(
-                    value: c.mode,
-                    underline: const SizedBox.shrink(),
-                    onChanged: c.followSystem ? null : (v) => setState(() => c.mode = v ?? 'light'),
-                    items: const [
-                      DropdownMenuItem(value: 'light', child: Text('Light')),
-                      DropdownMenuItem(value: 'dark', child: Text('Dark')),
-                      DropdownMenuItem(value: 'time', child: Text('Time-based')),
-                    ],
+                  MouseRegion(
+                    // A dropdown has no cursor of its own to set: the hand while it can be opened.
+                    cursor: c.followSystem ? SystemMouseCursors.basic : SystemMouseCursors.click,
+                    child: DropdownButton<String>(
+                      value: c.mode,
+                      underline: const SizedBox.shrink(),
+                      onChanged: c.followSystem ? null : (v) => setState(() => c.mode = v ?? 'light'),
+                      items: const [
+                        DropdownMenuItem(value: 'light', child: Text('Light')),
+                        DropdownMenuItem(value: 'dark', child: Text('Dark')),
+                        DropdownMenuItem(value: 'time', child: Text('Time-based')),
+                      ],
+                    ),
                   ),
                 ),
                 row(
@@ -285,6 +289,7 @@ class _WelcomeAppState extends State<WelcomeApp> with WindowListener {
         checked: picked,
         button: true,
         child: InkWell(
+          mouseCursor: WidgetStateMouseCursor.clickable,
           customBorder: const CircleBorder(),
           onTap: () => setState(() {
             if (id == 'system') {

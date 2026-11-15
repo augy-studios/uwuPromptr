@@ -1,7 +1,7 @@
 // The app's two pages, as the site's two documents (index.html and remote.html): the prompter
 // and the remote. Both are kept (an IndexedStack), so switching back keeps each one's place, and a
 // remote stays connected while you look at the prompter. Tours and bug reports read which is on
-// show; links and the desktop's navigation rail switch between them.
+// show; links and the desktop's title bar switch between them.
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';

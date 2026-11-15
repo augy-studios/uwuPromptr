@@ -264,6 +264,7 @@ class _Segmented extends StatelessWidget {
                   button: true,
                   selected: o.$1 == value,
                   child: InkWell(
+                    mouseCursor: WidgetStateMouseCursor.clickable,
                     borderRadius: BorderRadius.circular(9),
                     onTap: () => onPick(o.$1),
                     child: Container(

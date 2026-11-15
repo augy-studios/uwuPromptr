@@ -707,6 +707,7 @@ class _ReleaseState extends State<_Release> {
                     expanded: anything ? _open : null,
                     label: 'Version $v',
                     child: InkWell(
+                      mouseCursor: WidgetStateMouseCursor.clickable,
                       borderRadius: BorderRadius.circular(16),
                       onTap: anything
                           ? () => setState(() => _open = !_open)
@@ -993,6 +994,7 @@ class _GroupCardState extends State<_GroupCard> {
           if (!_all && g.items.length > _first) ...[
             Divider(height: 1, thickness: 1, color: s.outlineVariant),
             InkWell(
+              mouseCursor: WidgetStateMouseCursor.clickable,
               onTap: () => setState(() => _all = true),
               child: Padding(
                 padding: const EdgeInsets.symmetric(

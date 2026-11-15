@@ -10,8 +10,8 @@
 //   ?play=1        as the Google Play build: no updater of its own
 //   ?nearby=1      as a phone with Google Play services: the offline remote's buttons
 //   ?watch=1       with the Wear OS watch's link
-//   ?desktop=1     drawn as the desktop apps are: their title bar and command bar, the navigation
-//                  rail and the scripts beside the prompter (for the store's desktop pictures)
+//   ?desktop=1     drawn as the desktop apps are: their title bar and command bar, and the
+//                  scripts beside the prompter (for the store's desktop pictures)
 //   ?welcome=1     the desktop's Make it yours window
 //   ?notour=1      no tours start by themselves
 //   ?page=remote   open on the remote page (with &id=CODE, connecting to it)

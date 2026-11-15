@@ -31,23 +31,15 @@ std::wstring Widen(const std::string& s) {
   return w;
 }
 
-std::string Narrow(const std::wstring& w) {
-  if (w.empty()) return std::string();
-  int n = ::WideCharToMultiByte(CP_UTF8, 0, w.c_str(), static_cast<int>(w.size()), nullptr, 0, nullptr, nullptr);
-  std::string s(n, '\0');
-  ::WideCharToMultiByte(CP_UTF8, 0, w.c_str(), static_cast<int>(w.size()), s.data(), n, nullptr, nullptr);
-  return s;
-}
-
 std::wstring ExePath() {
   wchar_t path[MAX_PATH];
   ::GetModuleFileNameW(nullptr, path, MAX_PATH);
   return path;
 }
 
-// A white 16 px glyph for a thumbnail button, drawn in code: an arrow left or right, or the play
-// triangle with a pause bar beside it, for start and stop.
-HICON GlyphIcon(int kind) {
+// A white 16 px glyph for a thumbnail button, drawn in code: an arrow left or right, or for start
+// and stop, the play triangle while stopped and the pause bars while playing.
+HICON GlyphIcon(int kind, bool playing) {
   const int size = 16;
   BITMAPV5HEADER bi = {};
   bi.bV5Size = sizeof(bi);
@@ -78,16 +70,15 @@ HICON GlyphIcon(int kind) {
         set(x, 13 - i);
       }
     }
-  } else {
-    // A filled triangle pointing right, then two bars.
-    for (int x = 0; x < 7; x++) {
-      for (int y = 3 + x / 2; y <= 12 - x / 2; y++) set(2 + x, y);
-    }
+  } else if (playing) {
+    // Two bars.
     for (int y = 3; y <= 12; y++) {
-      set(11, y);
-      set(12, y);
-      set(14, y);
-      set(15, y);
+      for (int x : {4, 5, 6, 9, 10, 11}) set(x, y);
+    }
+  } else {
+    // A filled triangle pointing right.
+    for (int x = 0; x < 9; x++) {
+      for (int y = 2 + x / 2; y <= 13 - x / 2; y++) set(4 + x, y);
     }
   }
   HBITMAP mask = ::CreateBitmap(size, size, 1, 1, nullptr);
@@ -159,6 +150,11 @@ bool FlutterWindow::OnCreate() {
       }
       SetFavourites(favourites);
       result->Success();
+    } else if (call.method_name() == "setPlaying") {
+      const auto* on = std::get_if<bool>(call.arguments());
+      playing_ = on && *on;
+      UpdateThumbButtons();
+      result->Success();
     } else if (call.method_name() == "setBadge") {
       result->Success();
     } else {
@@ -189,7 +185,6 @@ void FlutterWindow::OnDestroy() {
 
 void FlutterWindow::SetFavourites(const std::vector<Favourite>& favourites) {
   favourites_ = favourites;
-  if (current_ >= static_cast<int>(favourites_.size())) current_ = 0;
   UpdateJumpList();
   UpdateThumbButtons();
 }
@@ -233,22 +228,22 @@ void FlutterWindow::UpdateJumpList() {
 }
 
 // The taskbar's thumbnail buttons (hover the taskbar icon): the previous script, start and stop,
-// and the next script. Previous and next are greyed out with fewer than two scripts. Start and
-// stop works the prompter without bringing the window forward.
+// and the next script. All three work the prompter without bringing the window forward; previous
+// and next are left out with fewer than two scripts, as there's nothing to switch to.
 void FlutterWindow::UpdateThumbButtons() {
   ComPtr<ITaskbarList3> taskbar;
   if (FAILED(::CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&taskbar)))) return;
   if (FAILED(taskbar->HrInit())) return;
   THUMBBUTTON buttons[3] = {};
   const int ids[3] = {kThumbPrevious, kThumbPlay, kThumbNext};
-  const wchar_t* tips[3] = {L"Previous script", L"Start and stop", L"Next script"};
+  const wchar_t* tips[3] = {L"Previous script", playing_ ? L"Stop" : L"Start", L"Next script"};
   const bool few = favourites_.size() < 2;
   for (int i = 0; i < 3; i++) {
     buttons[i].dwMask = THB_ICON | THB_TOOLTIP | THB_FLAGS;
     buttons[i].iId = ids[i];
-    buttons[i].hIcon = GlyphIcon(ids[i]);
+    buttons[i].hIcon = GlyphIcon(ids[i], playing_);
     wcsncpy_s(buttons[i].szTip, tips[i], _TRUNCATE);
-    buttons[i].dwFlags = (few && ids[i] != kThumbPlay) ? THBF_DISABLED : THBF_ENABLED;
+    buttons[i].dwFlags = (few && ids[i] != kThumbPlay) ? THBF_HIDDEN : THBF_ENABLED;
   }
   HWND hwnd = GetHandle();
   if (!thumbs_added_) {
@@ -261,15 +256,12 @@ void FlutterWindow::UpdateThumbButtons() {
   }
 }
 
+// The app does each: start and stop, or the script before or after the open one in its list
+// (lib/desktop/desktop_main.dart), so they follow whatever's open rather than a count kept here.
 void FlutterWindow::OnThumb(int button) {
   if (!channel_) return;
-  std::string what = "toggle";
-  if ((button == kThumbPrevious || button == kThumbNext) && !favourites_.empty()) {
-    int n = static_cast<int>(favourites_.size());
-    current_ = (current_ + (button == kThumbNext ? 1 : n - 1)) % n;
-    what = Narrow(favourites_[current_].link);
-  }
-  channel_->InvokeMethod("thumb", std::make_unique<flutter::EncodableValue>(what));
+  const char* what = button == kThumbPrevious ? "previous" : button == kThumbNext ? "next" : "toggle";
+  channel_->InvokeMethod("thumb", std::make_unique<flutter::EncodableValue>(std::string(what)));
 }
 
 LRESULT

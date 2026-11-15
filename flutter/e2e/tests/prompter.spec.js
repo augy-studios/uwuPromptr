@@ -161,6 +161,7 @@ test("settings: sliders with their resets, the toggles, the side menu's edge", a
   expect(s.timer).toBe(false);
   expect(await stored(page, "uwupromptr.traySide")).toBe("left");
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("heading", { name: "Prompter" })).toHaveCount(0);
   await page.keyboard.press("ArrowUp");
   await button(page, "Prompter settings (Ctrl+P)").click();
   await page.mouse.wheel(0, -3000);
