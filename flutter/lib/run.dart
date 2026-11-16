@@ -46,6 +46,7 @@ Future<void> runUwuPromptr(List<String> args) async {
   final moved = await Migrate.run(Store.I);
 
   ThemeController.isAndroid = () => Env.android;
+  ThemeController.isDesktop = () => Env.desktop;
   ThemeController.I.init();
   Api.watchOffline();
   Scripts.I.settings; // the welcome script, on a first run

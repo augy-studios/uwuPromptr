@@ -177,6 +177,18 @@ enforces desktop interaction patterns across shared widgets:
   colour"*, which reads the OS accent colour (Windows DWM accent, macOS system accent, Linux
   portal/GTK accent) for primary highlights while keeping the product's own neutral surfaces and
   fonts—avoiding a full phone-like Material You pastel wash on desktop.
+- **The system's glass instead of Material You**: the Theme window's second look on the desktop
+  is the system's own see-through look, as close to iOS's Liquid Glass as each system goes,
+  named for it: **Fluent 2** (Mica behind the window, Acrylic dialogs) on Windows, **macOS Tahoe**
+  (a vibrancy window, glass panels and round glass buttons) on macOS, and **Deepin & COSMIC**
+  (frosted glass) on Linux. It always takes the OS accent colour and the system font (Segoe UI
+  Variable, San Francisco, the desktop's sans), so it hides the brand swatches and the accent
+  switch. Panels are blurred and saturated with a rim lit from above; the prompter's stage stays
+  nearly solid, for reading. The runner makes the window see-through (§2.7, `setBackdrop`) and
+  says what it managed: blurred, see-through only, or not at all. The app makes the page as
+  opaque as that needs, down to drawing the frost itself where the window can't be seen through
+  (Windows 10, a desktop that doesn't composite). Stored as `app.look = glass`; a desktop's
+  `material`, from before, reads as glass, and Android reads `glass` as Material You.
 
 ### 2.7 The runner's native channel
 
@@ -187,6 +199,7 @@ One `MethodChannel` per runner (`<app-id>/desktop`) for what no package does:
 | Windows (C++) | single instance (a named mutex; the second copy sends its command line to the first with `WM_COPYDATA` and exits); the AppUserModelID (`SetCurrentProcessExplicitAppUserModelID`); Jump List tasks (`ICustomDestinationList` with `IShellLink`s to the exe plus a link argument); thumbnail toolbar buttons (`ITaskbarList3::ThumbBarAddButtons` and `ThumbBarUpdateButtons`, clicks from `WM_COMMAND` with `THBN_CLICKED`), with icons drawn in code |
 | macOS (Swift) | URL events (`application(_:open:)`), the Dock badge (`NSApp.dockTile.badgeLabel`), the Dock menu (`applicationDockMenu`), login items (`SMAppService.mainApp`), keeping the app alive with no window (`applicationShouldTerminateAfterLastWindowClosed` false), reopen on Dock click |
 | Linux (C) | single instance and forwarding (`G_APPLICATION_HANDLES_COMMAND_LINE` on a unique `GtkApplication`; the primary instance gets the second's arguments) |
+| All three | `setBackdrop {on, dark}` for the glass look (§2.6), answering `blurred`, `clear` or `none`. Windows: `DwmExtendFrameIntoClientArea` over the whole window and Mica (`DWMWA_SYSTEMBACKDROP_TYPE` on 22H2 and later, the older `1029` switch on 21H2, `none` on Windows 10), the frame dark with the app. macOS: an `NSVisualEffectView` (`.underWindowBackground`, behind-window) under the Flutter view, the window and the Flutter view made clear. Linux: an RGBA visual from the start where the screen composites, the Flutter view clear, and `_KDE_NET_WM_BLUR_BEHIND_REGION` on X11 (KWin and deepin-kwin), `blurred` when the root window announces it, else `clear` (most Wayland compositors, COSMIC's included) |
 
 Events come back to Dart on the same channel (`open` with a link, `thumb` with a button id,
 `dock` with a menu index, `activate`).

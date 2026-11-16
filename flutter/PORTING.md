@@ -19,7 +19,7 @@ checks the ported logic against answers worked out with the site's JavaScript, a
 | `js/watch.js` the Wear OS watch (Android) | `lib/remote/watch.dart`, `android/app/.../WatchLink.java`, `android/wear/` | Done |
 | `js/app-native.js` full brightness, volume keys, alerts, immersive | `lib/features/prompter/app_extras.dart`, `lib/app/fullscreen.dart`, `MainActivity.java` | Done, under the site's keys |
 | `js/app-desktop.js` keep on top, shortcuts in other apps, alerts | `lib/desktop/prompter_desk.dart` | Done, under the Electron app's settings keys |
-| `js/theme.js` brand colours, light, dark, time-based | `lib/theme/theme.dart`, `lib/features/theme/theme_sheet.dart` | Done, plus Material You |
+| `js/theme.js` brand colours, light, dark, time-based | `lib/theme/theme.dart`, `lib/features/theme/theme_sheet.dart` | Done, plus Material You (Android) and the system's glass (desktop) |
 | `js/tour.js` first-visit tours, Show me around | `lib/features/tour/tour.dart` | Done, under the same keys |
 | `js/bug-report.js` Report a bug, Screenshot a page, sent by `api/bug-report.js` | `lib/features/bug/bug_report.dart`, `lib/features/prompter/whole_script.dart` | Done. Screenshot a page takes the whole script on the prompter, or the screen |
 | `js/sw-update.js`, `js/app-update.js` update bar | `lib/features/update/update_bar.dart`, `lib/desktop/updater.dart` | Done, as the app's own updater and Updates page (Android), and the desktop's |

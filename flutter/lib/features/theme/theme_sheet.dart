@@ -1,7 +1,9 @@
 // The Theme window (the site's #themeModal): light, dark or time-based, and the brand colour.
-// The app adds the look: Material You (the device's own colours, the default on Android 12+) or
-// the UwU Apps look (the site's swatches and font). On the desktop, whose default is the UwU Apps
-// look, the system's accent colour can stand in for the brand colour instead.
+// The app adds the look. On Android: Material You (the device's own colours, the default on
+// Android 12+) or the UwU Apps look (the site's swatches and font). On the desktop, whose default
+// is the UwU Apps look: the system's glass in its place (Fluent 2 on Windows, macOS Tahoe on
+// macOS, Deepin and COSMIC's frosted glass on Linux), and in the UwU Apps look, the system's
+// accent colour can stand in for the brand colour.
 import 'package:flutter/material.dart';
 
 import '../../app/env.dart';
@@ -31,6 +33,9 @@ class ThemeSheet extends StatelessWidget {
         final t = ThemeController.I;
         final c = UwuColors.of(context);
         final material = t.isMaterial;
+        final glass = t.isGlass;
+        final system = material || glass;
+        final flavor = t.glassFlavor;
         final accent = desktopAccentGet?.call() ?? false;
 
         Widget section(String text) => Padding(
@@ -110,7 +115,7 @@ class ThemeSheet extends StatelessWidget {
             section('Look'),
             seg<String>(
               [
-                (lookMaterial, 'palette', 'Material You'),
+                if (Env.desktop) (lookGlass, 'monitor', flavor.label) else (lookMaterial, 'palette', 'Material You'),
                 (lookUwuApps, 'sun', 'UwU Apps'),
               ],
               t.look,
@@ -120,7 +125,14 @@ class ThemeSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                material
+                glass
+                    ? flavor.about +
+                          switch (t.backdrop) {
+                            Backdrop.blurred => '',
+                            Backdrop.clear => ' Your desktop doesn’t blur what’s behind windows, so uwuPromptr frosts it itself.',
+                            Backdrop.none => ' Your system doesn’t let this window be seen through, so uwuPromptr draws the glass itself.',
+                          }
+                    : material
                     ? (t.hasDynamic
                           ? 'Colours and fonts from your device.'
                           : 'Material You’s colours and fonts. This device has no palette of its own to share, so it uses uwuPromptr’s green.')
@@ -147,7 +159,7 @@ class ThemeSheet extends StatelessWidget {
                   style: TextStyle(color: c.muted, fontSize: 12.5),
                 ),
               ),
-            if (!material) ...[
+            if (!system) ...[
               if (Env.desktop && desktopAccentSet != null) ...[
                 section('System accent'),
                 SwitchListTile(

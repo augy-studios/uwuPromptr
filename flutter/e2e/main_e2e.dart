@@ -13,6 +13,9 @@
 //   ?desktop=1     drawn as the desktop apps are: their title bar and command bar, and the
 //                  scripts beside the prompter (for the store's desktop pictures)
 //   ?welcome=1     the desktop's Make it yours window
+//   ?glass=fluent  with ?desktop=1, the desktop's glass look, as Windows (fluent), macOS (tahoe) or
+//                  Linux (frosted) has it, and &backdrop=blurred or clear for a window the
+//                  desktop shows through (the page behind the app stands in for the desktop)
 //   ?notour=1      no tours start by themselves
 //   ?page=remote   open on the remote page (with &id=CODE, connecting to it)
 import 'dart:convert';
@@ -96,6 +99,13 @@ Future<void> main() async {
   if (q['desktop'] == '1') {
     Env.desktopOverride = true;
     desktopChrome = (context, child) => DesktopChrome(child: child);
+  }
+  final glass = GlassFlavor.values.where((f) => f.name == q['glass']).firstOrNull;
+  if (glass != null) {
+    ThemeController.I.glassFlavor = glass;
+    ThemeController.I.backdrop = Backdrop.values.where((b) => b.name == q['backdrop']).firstOrNull ?? Backdrop.none;
+    await Store.open();
+    Store.I.put(keyLook, lookGlass);
   }
   await runUwuPromptr(const []);
   if (q['desktop'] == '1') ViewHistory.start();

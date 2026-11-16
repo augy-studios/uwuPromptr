@@ -32,7 +32,9 @@ import 'settings_sheet.dart';
 import 'trays.dart';
 
 /// The stage's colours: light mode is near-black on the brand colour, dark mode the brand colour
-/// on near-black (main-site/css/app.css). In Material You, the device's palette instead.
+/// on near-black (main-site/css/app.css). In Material You, the device's palette instead, and in
+/// the desktop's glass look, the system's accent, tinted glass that's nearly solid, for reading
+/// from (solid where the window can't be seen through).
 ({Color bg, Color ink}) stageColours(
   BuildContext context, {
   String? mode,
@@ -40,6 +42,13 @@ import 'trays.dart';
 }) {
   final t = ThemeController.I;
   final dark = (mode ?? t.mode) == 'dark';
+  if (t.isGlass && mode == null) {
+    final c = UwuColors.of(context);
+    final see = t.backdrop == Backdrop.none ? 1.0 : 0.86;
+    return dark
+        ? (bg: const Color(0xFF0E0E10).withValues(alpha: see), ink: c.brandInk)
+        : (bg: Color.alphaBlend(c.brand.withValues(alpha: 0.7), c.paper).withValues(alpha: see), ink: c.ink);
+  }
   if (t.isMaterial && mode == null) {
     final s = Theme.of(context).colorScheme;
     return dark

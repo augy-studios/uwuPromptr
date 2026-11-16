@@ -88,7 +88,7 @@ class _ScriptEditorState extends State<ScriptEditor> {
           label: 'Edit script',
           container: true,
           child: Container(
-            color: c.bg,
+            color: c.paper,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

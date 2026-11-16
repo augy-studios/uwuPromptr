@@ -1,5 +1,6 @@
 #include "flutter_window.h"
 
+#include <dwmapi.h>
 #include <objbase.h>
 #include <propkey.h>
 #include <propvarutil.h>
@@ -22,6 +23,28 @@ constexpr wchar_t kAppId[] = L"org.uwuapps.cue";
 constexpr int kThumbPrevious = 1001;
 constexpr int kThumbPlay = 1002;
 constexpr int kThumbNext = 1003;
+
+// The window attributes for Mica, which older SDKs don't name.
+constexpr DWORD kDwmUseImmersiveDarkMode = 20;
+// Windows 11 22H2 and later: the system backdrop, with 2 for Mica (DWMSBT_MAINWINDOW).
+constexpr DWORD kDwmSystemBackdropType = 38;
+constexpr int kBackdropAuto = 0;
+constexpr int kBackdropMica = 2;
+// Windows 11 21H2's switch for the same, before the backdrop type existed.
+constexpr DWORD kDwmMicaEffect = 1029;
+
+// Windows' own build number, which GetVersionEx won't always tell.
+DWORD WindowsBuild() {
+  using RtlGetVersionFn = LONG(WINAPI*)(PRTL_OSVERSIONINFOW);
+  HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
+  if (!ntdll) return 0;
+  auto get = reinterpret_cast<RtlGetVersionFn>(::GetProcAddress(ntdll, "RtlGetVersion"));
+  if (!get) return 0;
+  RTL_OSVERSIONINFOW info = {};
+  info.dwOSVersionInfoSize = sizeof(info);
+  if (get(&info) != 0) return 0;
+  return info.dwBuildNumber;
+}
 
 std::wstring Widen(const std::string& s) {
   if (s.empty()) return std::wstring();
@@ -157,6 +180,20 @@ bool FlutterWindow::OnCreate() {
       result->Success();
     } else if (call.method_name() == "setBadge") {
       result->Success();
+    } else if (call.method_name() == "setBackdrop") {
+      bool on = false;
+      bool dark = false;
+      if (const auto* args = std::get_if<flutter::EncodableMap>(call.arguments())) {
+        auto get = [&](const char* key) {
+          auto v = args->find(flutter::EncodableValue(key));
+          if (v == args->end()) return false;
+          const auto* b = std::get_if<bool>(&v->second);
+          return b && *b;
+        };
+        on = get("on");
+        dark = get("dark");
+      }
+      result->Success(flutter::EncodableValue(SetBackdrop(on, dark)));
     } else {
       result->NotImplemented();
     }
@@ -256,6 +293,68 @@ void FlutterWindow::UpdateThumbButtons() {
   }
 }
 
+// Mica behind the app, for the glass look: the frame stretched over the whole window so the
+// backdrop shows wherever the app draws nothing, Mica as the backdrop, and the window light or
+// dark with the app (Mica takes its tint from that). Windows 10 has no Mica: "none", and the app
+// draws its own frost. Off, the frame goes back to nothing and the backdrop to the system's
+// choice; the app then asks window_manager for its hidden title bar's frame again.
+std::string FlutterWindow::SetBackdrop(bool on, bool dark) {
+  HWND hwnd = GetHandle();
+  if (!hwnd) return "none";
+  // Never on: nothing to undo, and window_manager's frame stays as it drew it.
+  if (!on && !backdrop_on_) return "none";
+  const DWORD build = WindowsBuild();
+  const bool has_mica = build >= 22000;
+  backdrop_on_ = on && has_mica;
+  backdrop_dark_ = dark;
+  // With the frame over the whole window, DWM would draw its own caption buttons over the app's
+  // (lib/desktop/chrome.dart): without the system menu style it draws none.
+  if (has_mica) {
+    LONG style = ::GetWindowLongW(hwnd, GWL_STYLE);
+    LONG want = backdrop_on_ ? (style & ~WS_SYSMENU) : (style | WS_SYSMENU);
+    if (want != style) {
+      ::SetWindowLongW(hwnd, GWL_STYLE, want);
+      ::SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    }
+  }
+  if (on) {
+    BOOL d = dark ? TRUE : FALSE;
+    ::DwmSetWindowAttribute(hwnd, kDwmUseImmersiveDarkMode, &d, sizeof(d));
+  }
+  if (!has_mica) return "none";
+  MARGINS margins = {0, 0, 0, 0};
+  if (backdrop_on_) margins = {-1, -1, -1, -1};
+  ::DwmExtendFrameIntoClientArea(hwnd, &margins);
+  HRESULT hr;
+  if (build >= 22621) {
+    int type = backdrop_on_ ? kBackdropMica : kBackdropAuto;
+    hr = ::DwmSetWindowAttribute(hwnd, kDwmSystemBackdropType, &type, sizeof(type));
+  } else {
+    BOOL mica = backdrop_on_ ? TRUE : FALSE;
+    hr = ::DwmSetWindowAttribute(hwnd, kDwmMicaEffect, &mica, sizeof(mica));
+  }
+  if (!on) {
+    // The frame light or dark with Windows again, as Win32Window keeps it.
+    DWORD light = 1;
+    DWORD size = sizeof(light);
+    if (::RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                       L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &light, &size) == ERROR_SUCCESS) {
+      BOOL d = light == 0 ? TRUE : FALSE;
+      ::DwmSetWindowAttribute(hwnd, kDwmUseImmersiveDarkMode, &d, sizeof(d));
+    }
+    return "none";
+  }
+  if (FAILED(hr)) {
+    margins = {0, 0, 0, 0};
+    ::DwmExtendFrameIntoClientArea(hwnd, &margins);
+    ::SetWindowLongW(hwnd, GWL_STYLE, ::GetWindowLongW(hwnd, GWL_STYLE) | WS_SYSMENU);
+    backdrop_on_ = false;
+    return "none";
+  }
+  return "blurred";
+}
+
 // The app does each: start and stop, or the script before or after the open one in its list
 // (lib/desktop/desktop_main.dart), so they follow whatever's open rather than a count kept here.
 void FlutterWindow::OnThumb(int button) {
@@ -281,6 +380,14 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   if (taskbar_created_ != 0 && message == taskbar_created_) {
     thumbs_added_ = false;
     if (!favourites_.empty()) UpdateThumbButtons();
+  }
+
+  // Windows' own light or dark changed: the window keeps the app's while Mica is on.
+  if (message == WM_DWMCOLORIZATIONCOLORCHANGED && backdrop_on_) {
+    LRESULT r = Win32Window::MessageHandler(hwnd, message, wparam, lparam);
+    BOOL d = backdrop_dark_ ? TRUE : FALSE;
+    ::DwmSetWindowAttribute(hwnd, kDwmUseImmersiveDarkMode, &d, sizeof(d));
+    return r;
   }
 
   switch (message) {

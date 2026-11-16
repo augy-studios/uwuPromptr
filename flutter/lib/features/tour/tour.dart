@@ -417,7 +417,7 @@ class _TourLayerState extends State<_TourLayer> {
                       child: Container(
                         padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
                         decoration: BoxDecoration(
-                          color: Color.alphaBlend(c.surfaceStrong, c.bg),
+                          color: Color.alphaBlend(c.surfaceStrong, c.paper),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: c.border),
                         ),

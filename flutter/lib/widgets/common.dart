@@ -30,6 +30,7 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = UwuColors.of(context);
+    if (c.liquid) return _liquid(context, c);
     final box = Container(
       padding: padding,
       decoration: BoxDecoration(
@@ -57,6 +58,122 @@ class GlassPanel extends StatelessWidget {
       ),
     );
   }
+
+  /// The desktop's glass look, after iOS's Liquid Glass: what's behind blurred and its colour
+  /// lifted, a faint sheen from the top, and a rim lit from above (brightest on the top edge,
+  /// fading round the sides, a softer catch on the bottom), with a wide, soft shadow under it.
+  Widget _liquid(BuildContext context, UwuColors c) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final r = BorderRadius.circular(radius);
+    final fill = strong ? c.surfaceStrong : c.surface;
+    // A bar's own edge (the prompter's top and bottom trays) becomes a faint hairline.
+    BorderSide soft(BorderSide side) => side.style == BorderStyle.none || side.width == 0 ? side : side.copyWith(color: c.separator);
+    final edge = border == null ? null : Border(top: soft(border!.top), right: soft(border!.right), bottom: soft(border!.bottom), left: soft(border!.left));
+    Widget box = CustomPaint(
+      foregroundPainter: border == null ? GlassRimPainter(radius: radius, dark: dark) : null,
+      child: Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          borderRadius: radius == 0 ? null : r,
+          border: edge,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color.alphaBlend(Colors.white.withValues(alpha: dark ? 0.05 : 0.18), fill),
+              fill,
+            ],
+          ),
+        ),
+        child: child,
+      ),
+    );
+    if (blur) {
+      box = ClipRRect(
+        borderRadius: r,
+        child: BackdropFilter(filter: glassFilter(c.flavor!), child: box),
+      );
+    }
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: r,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.28 : 0.10),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: box,
+    );
+  }
+}
+
+/// What the glass look's panels do to what's behind them: blurred (Fluent's Acrylic is the
+/// softest, macOS's glass the clearest) and more saturated, as Liquid Glass and Acrylic both are.
+ImageFilter glassFilter(GlassFlavor flavor) {
+  final sigma = switch (flavor) {
+    GlassFlavor.fluent => 30.0,
+    GlassFlavor.tahoe => 18.0,
+    GlassFlavor.frosted => 24.0,
+  };
+  const s = 1.6;
+  // Saturation, by the luminance weights.
+  const lr = 0.2126 * (1 - s), lg = 0.7152 * (1 - s), lb = 0.0722 * (1 - s);
+  const saturate = ColorFilter.matrix([
+    lr + s, lg, lb, 0, 0, //
+    lr, lg + s, lb, 0, 0, //
+    lr, lg, lb + s, 0, 0, //
+    0, 0, 0, 1, 0, //
+  ]);
+  return ImageFilter.compose(
+    outer: saturate,
+    inner: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.mirror),
+  );
+}
+
+/// The glass look's lit rim: a hairline that's brightest along the top, as if lit from above,
+/// fades down the sides, and catches the light again faintly along the bottom; and outside it, a
+/// darker hairline so the panel's edge holds over a light background too.
+class GlassRimPainter extends CustomPainter {
+  const GlassRimPainter({required this.radius, required this.dark});
+
+  final double radius;
+  final bool dark;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final rr = RRect.fromRectAndRadius(rect.deflate(0.5), Radius.circular(radius));
+    canvas.drawRRect(
+      rr,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.black.withValues(alpha: dark ? 0.45 : 0.10),
+    );
+    canvas.drawRRect(
+      rr.deflate(0.75),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.25
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.white.withValues(alpha: dark ? 0.32 : 0.95),
+            Colors.white.withValues(alpha: dark ? 0.06 : 0.25),
+            Colors.white.withValues(alpha: dark ? 0.02 : 0.10),
+            Colors.white.withValues(alpha: dark ? 0.12 : 0.45),
+          ],
+          stops: const [0, 0.35, 0.75, 1],
+        ).createShader(rect),
+    );
+  }
+
+  @override
+  bool shouldRepaint(GlassRimPainter old) => old.radius != radius || old.dark != dark;
 }
 
 /// The site's .glass-btn: a rounded square icon button, labelled for screen readers, its label on
@@ -96,26 +213,65 @@ class GlassButton extends StatelessWidget {
         toggled: active,
         label: label,
         excludeSemantics: true,
-        child: Material(
+        child: c.liquid ? _liquid(context, c, on) : Material(
           color: on ? c.brandFill : c.surfaceStrong,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
             side: BorderSide(color: c.border),
           ),
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            mouseCursor: WidgetStateMouseCursor.clickable,
-            onTap: onPressed,
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: Center(
-                child: AppIcon(
-                  icon,
-                  size: size * 0.45,
-                  color: danger ? c.error : (on ? c.onBrand : c.ink),
-                ),
-              ),
+          child: _face(c, on),
+        ),
+      ),
+    );
+  }
+
+  Widget _face(UwuColors c, bool on) => InkWell(
+    mouseCursor: WidgetStateMouseCursor.clickable,
+    onTap: onPressed,
+    child: SizedBox(
+      width: size,
+      height: size,
+      child: Center(
+        child: AppIcon(
+          icon,
+          size: size * 0.45,
+          color: danger ? c.error : (on ? c.onBrand : c.ink),
+        ),
+      ),
+    ),
+  );
+
+  /// The glass look's: a drop of glass (round on macOS Tahoe, as iOS's are; Fluent's and the
+  /// frosted desktops' rounded squares), lit at the rim, tinted with the accent when it's on.
+  Widget _liquid(BuildContext context, UwuColors c, bool on) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final radius = switch (c.flavor!) {
+      GlassFlavor.tahoe => size / 2,
+      GlassFlavor.fluent => 8.0,
+      GlassFlavor.frosted => 12.0,
+    };
+    final r = BorderRadius.circular(radius);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: r,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.30 : 0.12),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: r,
+        child: BackdropFilter(
+          filter: glassFilter(c.flavor!),
+          child: CustomPaint(
+            foregroundPainter: GlassRimPainter(radius: radius, dark: dark),
+            child: Material(
+              color: on ? c.brandFill.withValues(alpha: 0.88) : c.surfaceStrong,
+              child: _face(c, on),
             ),
           ),
         ),
@@ -193,7 +349,7 @@ class IconBtn extends StatelessWidget {
               decoration: BoxDecoration(
                 color: badge,
                 shape: BoxShape.circle,
-                border: Border.all(color: c.bg, width: 2),
+                border: Border.all(color: c.paper, width: 2),
               ),
             ),
           ),

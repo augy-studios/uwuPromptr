@@ -3,10 +3,11 @@ import FlutterMacOS
 
 // The app's own channel to macOS (org.uwuapps.cue/desktop, lib/desktop/runner.dart): the Dock's
 // menu of scripts and its badge; uwu://cue/ links opened from elsewhere; a click on the
-// Dock icon bringing the window back. Closing the window leaves the app running in the menu bar.
+// Dock icon bringing the window back; the glass look's backdrop (MainFlutterWindow.swift). Closing the window leaves the app running in the menu bar.
 @main
 class AppDelegate: FlutterAppDelegate {
   var channel: FlutterMethodChannel?
+  private weak var mainWindow: MainFlutterWindow?
   private var favourites: [(name: String, link: String)] = []
   private var pendingLinks: [String] = []
 
@@ -18,7 +19,8 @@ class AppDelegate: FlutterAppDelegate {
     return true
   }
 
-  func attach(_ messenger: FlutterBinaryMessenger) {
+  func attach(_ messenger: FlutterBinaryMessenger, window: MainFlutterWindow) {
+    mainWindow = window
     let channel = FlutterMethodChannel(name: "org.uwuapps.cue/desktop", binaryMessenger: messenger)
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self = self else { return }
@@ -34,6 +36,11 @@ class AppDelegate: FlutterAppDelegate {
       case "setBadge":
         NSApp.dockTile.badgeLabel = (call.arguments as? String).flatMap { $0.isEmpty ? nil : $0 }
         result(nil)
+      case "setBackdrop":
+        let args = call.arguments as? [String: Any]
+        let on = args?["on"] as? Bool ?? false
+        let dark = args?["dark"] as? Bool ?? false
+        result(self.mainWindow?.setBackdrop(on: on, dark: dark) ?? "none")
       default:
         result(FlutterMethodNotImplemented)
       }

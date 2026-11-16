@@ -20,7 +20,9 @@ The app is served on 47391 and the website on 47392.
 Query parameters: `?android=1` draws as the Android app does (its Updates page, Material You by
 default), `?wallpaper=1` pretends the phone has wallpaper colours, `?play=1` acts as the Google
 Play build, `?nearby=1` and `?watch=1` as a phone with Google Play services and a paired watch,
-`?desktop=1` draws the desktop's title bar and scripts pane, `?welcome=1` the desktop's
+`?desktop=1` draws the desktop's title bar and scripts pane (with `&glass=fluent`, `tahoe` or
+`frosted`, in that system's glass look, and `&backdrop=blurred` or `clear` for a see-through
+window), `?welcome=1` the desktop's
 Make it yours window, `?notour=1` keeps tours from starting, and `?page=remote&id=CODE` opens the
 remote. What the app asked of its Android side is in `window.e2eCalls`, and
 `window.e2eEmit(plugin, event, json)` says what Android would have said.

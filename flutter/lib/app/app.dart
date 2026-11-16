@@ -65,9 +65,11 @@ class _UwuPromptrAppState extends State<UwuPromptrApp> {
             final t = ThemeController.I;
             final brand = t.colorTheme.color;
             ThemeData make(Brightness b, {bool hc = false}) {
+              // Material You: the device's palette. Glass: always the system's accent, as the
+              // system's own apps have it. The UwU Apps look: the accent only when asked for.
               final ColorScheme? dyn = t.isMaterial
                   ? (b == Brightness.dark ? darkDynamic : lightDynamic)?.harmonized()
-                  : (t.systemAccent ? desktopAccentScheme?.call(b) : null);
+                  : (t.isGlass || t.systemAccent ? desktopAccentScheme?.call(b) : null);
               return buildTheme(
                 look: t.look,
                 brightness: b,
@@ -76,6 +78,8 @@ class _UwuPromptrAppState extends State<UwuPromptrApp> {
                 systemAccent: t.systemAccent,
                 highContrast: hc,
                 desktop: Env.desktop,
+                glassFlavor: t.glassFlavor,
+                backdrop: t.backdrop,
               );
             }
 

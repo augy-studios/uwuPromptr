@@ -2,10 +2,14 @@
 //   Windows  the Jump List (the scripts) and the taskbar's thumbnail buttons (previous script,
 //            start and stop, next script) (windows/runner/flutter_window.cpp)
 //   macOS    the Dock menu and badge (macos/Runner/AppDelegate.swift)
+//   all      the window's own glass behind the app, for the glass look (backdrop.dart): Mica on
+//            Windows 11, a vibrancy view on macOS, a see-through window and the compositor's
+//            blur on Linux (linux/runner/my_application.cc)
 // Events back: 'thumb' with 'toggle', 'previous' or 'next', 'dock' with a script id, 'open' with a
-// link and 'activate' (macOS). Where the runner has no channel (Linux), every call is quietly
-// nothing.
+// link and 'activate' (macOS). What a runner doesn't do is quietly nothing.
 import 'package:flutter/services.dart';
+
+import '../theme/theme.dart';
 
 class Runner {
   Runner._();
@@ -56,4 +60,15 @@ class Runner {
 
   /// The Dock's badge (macOS): a few characters, or '' for none.
   static Future<void> setBadge(String text) => _call('setBadge', text);
+
+  /// The window's own glass behind the app, on or off, light or dark: what the system gave
+  /// ('blurred', 'clear' or 'none'), and nothing where the runner can't.
+  static Future<Backdrop> setBackdrop({required bool on, required bool dark}) async {
+    try {
+      final r = await _channel.invokeMethod<String>('setBackdrop', {'on': on, 'dark': dark});
+      return Backdrop.values.firstWhere((b) => b.name == r, orElse: () => Backdrop.none);
+    } catch (_) {
+      return Backdrop.none;
+    }
+  }
 }

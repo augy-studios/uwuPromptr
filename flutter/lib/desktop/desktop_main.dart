@@ -7,6 +7,7 @@
 // - Make it yours, the first window, and from the tray's menu after (welcome.dart);
 // - the tray, where closing the window leaves it running (tray.dart);
 // - its own title bar and command bar, shortcuts, the macOS menu bar (chrome.dart);
+// - the window's own glass behind the glass look (backdrop.dart);
 // - the tray countdown, the Jump List, thumbnail buttons and Dock (glance.dart);
 // - the mini remote, each in its own window and engine (widgets_window.dart);
 // - Keep on top, Move to display and shortcuts in other apps (prompter_desk.dart);
@@ -30,6 +31,7 @@ import '../features/theme/theme_sheet.dart';
 import '../native/bridge.dart';
 import '../theme/theme.dart';
 import 'adaptive.dart';
+import 'backdrop.dart';
 import 'chrome.dart';
 import 'desk.dart';
 import 'glance.dart';
@@ -172,6 +174,7 @@ Future<void> desktopAfterApp(List<String> args) async {
 
   await DeskNotify.init();
   await Desktop.firstShow();
+  WindowBackdrop.start();
   await PrompterDesk.I.start();
   unawaited(DeskTray.I.start());
   Glance.start();

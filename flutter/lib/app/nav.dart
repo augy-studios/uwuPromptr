@@ -30,7 +30,7 @@ class AppNav {
     m.hideCurrentSnackBar();
     m.showSnackBar(
       SnackBar(
-        content: Text(message, style: TextStyle(color: error ? c.bg : null)),
+        content: Text(message, style: TextStyle(color: error ? c.paper : null)),
         backgroundColor: error ? c.error : null,
         duration: const Duration(seconds: 3),
         width: MediaQuery.sizeOf(ctx).width > 560 ? 420 : null,

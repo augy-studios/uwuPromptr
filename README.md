@@ -15,7 +15,7 @@ optional relay that would lift the restriction.
 There are apps too, built with Flutter from one project: for Android (Material You by default,
 with a remote that needs no wifi and an Updates page), for Wear OS watches (play, pause and the
 speed on the crown), and for Windows, macOS and Linux (a command bar, a mini remote, shortcuts
-from any app). Downloads are on the
+from any app, and a glass look in each system's own style). Downloads are on the
 [latest release](https://github.com/augy-studios/uwuPromptr/releases/latest), and
 [Privacy](https://cue.uwuapps.org/privacy) says what's kept: your scripts stay on your device.
 

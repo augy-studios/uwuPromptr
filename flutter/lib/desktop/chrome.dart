@@ -371,7 +371,7 @@ class _DesktopChromeState extends State<DesktopChrome> {
             offset: const Offset(0, 6),
             child: Material(
               elevation: 12,
-              color: Color.alphaBlend(c.surfaceStrong, c.bg),
+              color: Color.alphaBlend(c.surfaceStrong, c.paper),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: c.border),
@@ -513,8 +513,13 @@ class _DesktopChromeState extends State<DesktopChrome> {
     final c = UwuColors.of(context);
     final brand = c.glass ? ThemeController.I.colorTheme.color : c.brandFill;
     final dark = c.glass && ThemeController.I.brightness == Brightness.dark;
-    final bg = dark ? Color.lerp(brand, Colors.black, 0.72)! : brand;
-    final ink = ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
+    // In the glass look the bar is part of the window's glass, as Mica runs under Windows 11's
+    // title bars and macOS's toolbars are on the window's own material: the page's colour, which
+    // is see-through wherever the window is.
+    final bg = c.liquid ? c.bg : (dark ? Color.lerp(brand, Colors.black, 0.72)! : brand);
+    final ink = c.liquid
+        ? c.ink
+        : ThemeData.estimateBrightnessForColor(bg) == Brightness.dark
         ? Colors.white
         : const Color(0xFF121815);
     final mac = Env.macOS;
@@ -675,6 +680,12 @@ class _DesktopChromeState extends State<DesktopChrome> {
   }
 
   Widget _commandBar(UwuColors c, Color ink, Color bg) {
+    // A capsule on macOS Tahoe, Fluent 2's small corners on Windows.
+    final barRadius = switch (c.flavor) {
+      GlassFlavor.tahoe => 14.0,
+      GlassFlavor.fluent => 4.0,
+      _ => 8.0,
+    };
     final rest = _message.isNotEmpty
         ? _message
         : (AppPages.active() == AppPages.remote
@@ -712,7 +723,7 @@ class _DesktopChromeState extends State<DesktopChrome> {
                   filled: true,
                   fillColor: _focus.hasFocus
                       ? c.surfaceStrong
-                      : Colors.black.withValues(alpha: 0.08),
+                      : (c.liquid ? c.surface : Colors.black.withValues(alpha: 0.08)),
                   hintText: _focus.hasFocus
                       ? 'Search scripts and commands, type a remote ID, or paste a link'
                       : rest,
@@ -741,15 +752,15 @@ class _DesktopChromeState extends State<DesktopChrome> {
                     vertical: 6,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(barRadius),
                     borderSide: BorderSide.none,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(barRadius),
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(barRadius),
                     borderSide: BorderSide(color: c.brandInk, width: 1.5),
                   ),
                 ),

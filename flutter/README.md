@@ -21,7 +21,7 @@ lib/
   remote/                 PeerJS over WebRTC (the site's remote.js), Nearby and the watch
   native/bridge.dart      the one way to platform code: Native.call / has / on
   desktop/                the desktop layer: window, tray, title bar, updater, installers' side
-  theme/                  Material You and the UwU Apps look; the site's icons
+  theme/                  Material You, the desktop's glass and the UwU Apps look; the site's icons
 android/                  the Gradle project: app/ (Java for Nearby, the watch, the updater, FCM),
                           wear/ (the Wear OS watch app)
 windows/ macos/ linux/    the runners, each with a small native channel (Jump List, Dock…)

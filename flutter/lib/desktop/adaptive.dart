@@ -10,6 +10,7 @@ import '../app/env.dart';
 import '../app/nav.dart';
 import '../theme/icons.dart';
 import '../theme/theme.dart';
+import '../widgets/common.dart';
 import '../widgets/sheet.dart';
 
 Future<T?> showDesktopSheet<T>(
@@ -30,7 +31,10 @@ Future<T?> showDesktopSheet<T>(
     pageBuilder: (context, _, _) {
       final c = UwuColors.of(context);
       final size = MediaQuery.sizeOf(context);
-      final panel = Material(
+      final content = builder(context);
+      final panel = c.liquid
+          ? _GlassSheet(drawer: kind == SheetKind.drawer, child: content)
+          : Material(
         color: Theme.of(context).dialogTheme.backgroundColor,
         shape: kind == SheetKind.drawer
             ? Border(left: BorderSide(color: c.border))
@@ -40,7 +44,7 @@ Future<T?> showDesktopSheet<T>(
               ),
         clipBehavior: Clip.antiAlias,
         elevation: 12,
-        child: builder(context),
+        child: content,
       );
       if (kind == SheetKind.drawer) {
         return Align(
@@ -101,7 +105,7 @@ Future<void> showContextMenu(BuildContext context, Offset position, List<MenuAct
     context: context,
     useRootNavigator: true,
     position: RelativeRect.fromRect(at & const Size(1, 1), Offset.zero & overlay.size),
-    color: Color.alphaBlend(c.surfaceStrong, c.bg),
+    color: Color.alphaBlend(c.surfaceStrong, c.paper),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),
       side: BorderSide(color: c.border),
@@ -199,4 +203,48 @@ class AppScrollBehavior extends MaterialScrollBehavior {
 
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) => Env.desktop ? const ClampingScrollPhysics() : super.getScrollPhysics(context);
+}
+
+/// A dialog or drawer in the desktop's glass look: Fluent's Acrylic, macOS Tahoe's glass sheet,
+/// DDE and COSMIC's frosted panel. What's behind is blurred and its colour lifted, under a
+/// see-through tint (the dialog theme's colour) with a lit rim and a wide, soft shadow.
+class _GlassSheet extends StatelessWidget {
+  const _GlassSheet({required this.drawer, required this.child});
+
+  final bool drawer;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = UwuColors.of(context);
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    final shape = theme.dialogTheme.shape;
+    final radius = drawer
+        ? 0.0
+        : (shape is RoundedRectangleBorder && shape.borderRadius is BorderRadius ? (shape.borderRadius as BorderRadius).topLeft.x : 18.0);
+    final r = BorderRadius.circular(radius);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: r,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: dark ? 0.45 : 0.18), blurRadius: 48, offset: const Offset(0, 18)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: r,
+        child: BackdropFilter(
+          filter: glassFilter(c.flavor!),
+          child: CustomPaint(
+            foregroundPainter: drawer ? null : GlassRimPainter(radius: radius, dark: dark),
+            child: Material(
+              color: theme.dialogTheme.backgroundColor,
+              shape: drawer ? Border(left: BorderSide(color: Colors.white.withValues(alpha: dark ? 0.14 : 0.6))) : null,
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

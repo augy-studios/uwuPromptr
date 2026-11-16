@@ -199,7 +199,7 @@ class _DesktopShell extends StatelessWidget {
                               width: paneWidth,
                               child: const _ScriptsPane(),
                             ),
-                            VerticalDivider(width: 1, color: c.border),
+                            VerticalDivider(width: 1, color: c.separator),
                           ],
                         ),
                       ),
