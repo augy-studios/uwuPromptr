@@ -1,12 +1,25 @@
+// A quick look at the app: opens the Flutter build that serve.mjs is serving, waits for it to
+// settle, saves a screenshot, and prints any errors the page reported.
+// Usage: node peek.mjs <screenshot.png> [query] [width] [height]
 import { chromium } from "@playwright/test";
-const [,, out, query = "", w = "412", h = "892"] = process.argv;
-const b = await chromium.launch();
-const p = await b.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 1 });
-const errs = [];
-p.on("pageerror", (e) => errs.push(String(e)));
-p.on("console", (m) => { if (m.type() === "error") errs.push(m.text()); });
-await p.goto("http://127.0.0.1:47391/" + query);
-await p.waitForTimeout(4500);
-await p.screenshot({ path: out });
-console.log(errs.join("\n") || "no errors");
-await b.close();
+const [, , outputPath, query = "", width = "412", height = "892"] = process.argv;
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: Number(width), height: Number(height) }, deviceScaleFactor: 1 });
+const errors = [];
+page.on("pageerror", (error) => {
+  errors.push(String(error));
+});
+page.on("console", (message) => {
+  if (message.type() === "error") {
+    errors.push(message.text());
+  }
+});
+await page.goto("http://127.0.0.1:47391/" + query);
+await page.waitForTimeout(4500);
+await page.screenshot({ path: outputPath });
+let report = errors.join("\n");
+if (!report) {
+  report = "no errors";
+}
+console.log(report);
+await browser.close();

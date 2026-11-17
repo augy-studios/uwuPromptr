@@ -1,20 +1,29 @@
+// Small helpers shared by every page: drawing icons into the markup, opening
+// and closing modals, escaping text for HTML, and the short "toast" message.
+
 import { icon } from "./icons.js";
 
+// Fills every element that has a data-icon attribute with that icon's SVG.
 // Safe to call repeatedly; re-renders when data-icon changes.
 export function hydrateIcons(root = document) {
-  root.querySelectorAll("[data-icon]").forEach((el) => {
-    const name = el.dataset.icon;
-    if (el.dataset.iconRendered === name) return;
-    el.innerHTML = icon(name);
-    el.dataset.iconRendered = name;
+  root.querySelectorAll("[data-icon]").forEach((element) => {
+    const name = element.dataset.icon;
+    if (element.dataset.iconRendered === name) {
+      return;
+    }
+    element.innerHTML = icon(name);
+    element.dataset.iconRendered = name;
   });
 }
 
+// Shows the modal with this id, and marks the page as having a modal open.
 export function openModal(id) {
   document.getElementById(id).classList.remove("hidden");
   document.body.classList.add("modal-open");
 }
 
+// Hides the modal with this id. The page only stops being "modal open" once
+// no other modal is still showing.
 export function closeModal(id) {
   document.getElementById(id).classList.add("hidden");
   if (!document.querySelector(".modal-backdrop:not(.hidden)")) {
@@ -22,9 +31,11 @@ export function closeModal(id) {
   }
 }
 
+// Turns any value into text that is safe to put inside HTML, by replacing the
+// five characters HTML treats specially with their escaped forms.
 export function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (c) => {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  return String(value).replace(/[&<>"']/g, (character) => {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character];
   });
 }
 
@@ -32,19 +43,21 @@ export function escapeHtml(value) {
 // deserve a modal. One toast at a time; a second call replaces the first.
 let toastTimer = null;
 export function toast(message) {
-  let el = document.querySelector(".toast");
-  if (!el) {
-    el = document.createElement("div");
-    el.className = "toast";
-    el.setAttribute("role", "status");
-    document.body.appendChild(el);
+  let element = document.querySelector(".toast");
+  if (!element) {
+    element = document.createElement("div");
+    element.className = "toast";
+    element.setAttribute("role", "status");
+    document.body.appendChild(element);
   }
-  el.textContent = message;
-  el.classList.remove("hidden");
+  element.textContent = message;
+  element.classList.remove("hidden");
 
-  if (toastTimer) clearTimeout(toastTimer);
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
   toastTimer = setTimeout(() => {
-    el.classList.add("hidden");
+    element.classList.add("hidden");
     toastTimer = null;
   }, 2000);
 }
