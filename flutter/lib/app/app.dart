@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../desktop/adaptive.dart';
 import '../features/bug/bug_report.dart';
+import '../features/prompter/app_extras.dart';
 import '../features/prompter/prompter_screen.dart';
 import '../features/update/update_bar.dart';
 import '../theme/theme.dart';
@@ -96,8 +97,13 @@ class _UwuPromptrAppState extends State<UwuPromptrApp> {
               builder: (context, child) {
                 // Text grows with the device's setting, up to twice, so layouts hold.
                 final mq = MediaQuery.of(context);
-                Widget app = MediaQuery(
-                  data: mq.copyWith(textScaler: mq.textScaler.clamp(minScaleFactor: 1, maxScaleFactor: 2)),
+                Widget app = ListenableBuilder(
+                  // The space above the navigation bar, as set in Prompter settings > Android app.
+                  listenable: AppExtras.I,
+                  builder: (context, stack) => MediaQuery(
+                    data: AppExtras.I.withBottomGap(mq.copyWith(textScaler: mq.textScaler.clamp(minScaleFactor: 1, maxScaleFactor: 2))),
+                    child: stack!,
+                  ),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [

@@ -136,7 +136,13 @@ class _PrompterScreenState extends State<PrompterScreen> {
                   bottom: bottomRoom,
                   left: trays.side && trays.left ? sideRoom : 0,
                   right: trays.side && !trays.left ? sideRoom : 0,
-                  child: _Reading(ink: stage.ink),
+                  // An open tray already keeps the stage clear of the bar behind it.
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: trays.top,
+                    removeBottom: trays.bottom,
+                    child: _Reading(ink: stage.ink),
+                  ),
                 ),
                 // The three trays, faded and untouchable while the script moves.
                 Positioned.fill(

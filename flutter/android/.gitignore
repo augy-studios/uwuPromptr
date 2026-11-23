@@ -15,3 +15,6 @@ key.properties
 
 # The watch module's build (wear/README.md).
 /wear/build/
+
+# Gradle's own build folder, where it leaves reports/problems/problems-report.html.
+/build/

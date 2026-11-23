@@ -134,7 +134,13 @@ class _ScriptEditorState extends State<ScriptEditor> {
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(14),
+                    // Clear of the navigation bar when the bottom tray is put away.
+                    padding: EdgeInsets.fromLTRB(
+                      14,
+                      14,
+                      14,
+                      14 + MediaQuery.paddingOf(context).bottom,
+                    ),
                     child: Named(
                       'Script text',
                       child: TextField(

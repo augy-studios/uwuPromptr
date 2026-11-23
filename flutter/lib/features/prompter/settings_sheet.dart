@@ -95,8 +95,14 @@ class SettingsSheet extends StatelessWidget {
               options: const [('left', 'Left edge'), ('right', 'Right edge')],
               onPick: Trays.I.setEdge,
             ),
-            if (keys || alerts) ...[
+            if (Env.android) ...[
               const FieldLabel('Android app'),
+              const _BottomGapSlider(),
+              const Note(
+                'Moves the bottom rows (the prompter’s controls, the remote and these windows) up or down from the navigation bar, for a phone where they sit too low or too high.',
+              ),
+            ],
+            if (keys || alerts) ...[
               ToggleGrid(
                 children: [
                   if (keys)
@@ -220,6 +226,73 @@ class _Slider extends StatelessWidget {
                   color: p.isDefault(name)
                       ? c.muted.withValues(alpha: 0.5)
                       : c.ink,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Android: the space above the navigation bar, in the app's pixels: 0 is the phone's own
+/// measure, and the rest is added to it or taken off it.
+class _BottomGapSlider extends StatelessWidget {
+  const _BottomGapSlider();
+
+  static const _label = 'Space above the navigation bar';
+
+  static String _format(double v) {
+    final n = v.round();
+    if (n == 0) return 'Automatic';
+    return n > 0 ? '+$n px' : '−${-n} px';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = UwuColors.of(context);
+    final x = AppExtras.I;
+    final value = x.bottomGap;
+    final auto = value == 0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(text: '$_label '),
+                TextSpan(
+                  text: _format(value),
+                  style: TextStyle(color: c.muted),
+                ),
+              ],
+            ),
+            style: TextStyle(color: c.ink, fontSize: 13.5),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Slider(
+                  key: const Key('bottom-gap'),
+                  value: value,
+                  min: bottomGapMin,
+                  max: bottomGapMax,
+                  divisions: ((bottomGapMax - bottomGapMin) / bottomGapStep).round(),
+                  label: _format(value),
+                  semanticFormatterCallback: (v) => '$_label ${_format(v)}',
+                  onChanged: x.setBottomGap,
+                ),
+              ),
+              IconButton(
+                tooltip: 'Reset the space above the navigation bar to automatic',
+                onPressed: auto ? null : () => x.setBottomGap(0),
+                icon: AppIcon(
+                  'reset',
+                  size: 16,
+                  color: auto ? c.muted.withValues(alpha: 0.5) : c.ink,
                 ),
               ),
             ],

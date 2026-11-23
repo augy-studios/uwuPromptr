@@ -2,9 +2,12 @@
 // each only where the platform says it can (Native.has):
 //
 //   Android  Full brightness (this window only, the phone's own setting untouched), Check for
-//            updates (the Updates page), Volume keys start and stop, New version alerts
+//            updates (the Updates page), Volume keys start and stop, New version alerts, Space
+//            above the navigation bar
 //   Desktop  Keep on top, Check for updates, Shortcuts in other apps (F8, F9, F10), New version
 //            alerts (lib/desktop/ sets these up)
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../app/env.dart';
@@ -15,6 +18,11 @@ import '../update/update_bar.dart';
 const keyBrightness = 'uwupromptr.fullBrightness';
 const keyVolumeKeys = 'uwupromptr.volumeKeys';
 const keyReleaseAlerts = 'uwupromptr.releaseAlerts';
+const keyBottomGap = 'uwupromptr.bottomGap';
+
+/// Space above the navigation bar, added to (or taken off) what the phone says the bar needs, in
+/// the app's pixels: for a phone that gets it wrong, so the bottom rows sit where they read best.
+const bottomGapMin = -24.0, bottomGapMax = 48.0, bottomGapStep = 2.0;
 
 class TrayExtra {
   const TrayExtra(this.id, this.icon, this.label, this.onTap, {this.active});
@@ -34,6 +42,33 @@ class AppExtras extends ChangeNotifier {
 
   bool get brightness => Store.I.get(keyBrightness) == '1';
   bool get volumeKeys => Store.I.get(keyVolumeKeys) == '1';
+
+  /// 0 (the phone's own measure) unless changed; Android only.
+  double get bottomGap {
+    if (!Env.android) return 0;
+    final v = double.tryParse(Store.I.get(keyBottomGap) ?? '') ?? 0;
+    return v.clamp(bottomGapMin, bottomGapMax);
+  }
+
+  void setBottomGap(double v) {
+    final snapped = ((v / bottomGapStep).round() * bottomGapStep).clamp(bottomGapMin, bottomGapMax);
+    if (snapped == bottomGap) return;
+    Store.I.put(keyBottomGap, snapped == 0 ? null : '${snapped.round()}');
+    notifyListeners();
+  }
+
+  /// The screen's measures with the gap applied, for the whole app (lib/app/app.dart), so every
+  /// bottom row moves together: the prompter's controls, the remote, the windows and the editor.
+  /// Not while the keyboard is up: it covers the bar, and the rows sit on the keyboard instead.
+  MediaQueryData withBottomGap(MediaQueryData mq) {
+    final gap = bottomGap;
+    if (gap == 0 || mq.viewInsets.bottom > 0) return mq;
+    double moved(double b) => math.max(0, b + gap);
+    return mq.copyWith(
+      padding: mq.padding.copyWith(bottom: moved(mq.padding.bottom)),
+      viewPadding: mq.viewPadding.copyWith(bottom: moved(mq.viewPadding.bottom)),
+    );
+  }
 
   /// On the prompter page: the brightness and the keys as they were left. Off the remote page,
   /// none of the prompter's screen or key settings apply (app-native.js's resetAppFeatures).

@@ -68,7 +68,20 @@ class AppSheet {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.sizeOf(context).height * 0.92,
               ),
-              child: builder(context),
+              // Clear of the navigation bar: the sheet's colour runs on behind it (the app draws
+              // edge to edge), and its last row sits above. The padding is already nothing
+              // while the keyboard is up, since that lifts the whole sheet. Taken off what the
+              // sheet's insides see, so nothing in it adds the gap a second time.
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom,
+                ),
+                child: MediaQuery.removePadding(
+                  context: context,
+                  removeBottom: true,
+                  child: Builder(builder: builder),
+                ),
+              ),
             ),
           ),
         ),
